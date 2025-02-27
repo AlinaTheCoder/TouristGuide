@@ -1,0 +1,72 @@
+{
+  "project_info": {
+    "project_number": "742417803218",
+    "firebase_url": "https://touristguide-f0491-default-rtdb.firebaseio.com",
+    "project_id": "touristguide-f0491",
+    "storage_bucket": "touristguide-f0491.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:742417803218:android:a8e2d186f17ac7aeeb0a0b",
+        "android_client_info": {
+          "package_name": "com.touristguide"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "742417803218-j0kius11a8k8tt21krlag6tcppp0hhip.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.touristguide",
+            "certificate_hash": "b21865d24827295e15b66c184c12f3913a92dc67"
+          }
+        },
+        {
+          "client_id": "742417803218-l1rm271bkgteila8e1likt8jl0fe1nu8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.touristguide",
+            "certificate_hash": "09e85ef244416d7b31e654d144560295dafedec5"
+          }
+        },
+        {
+          "client_id": "742417803218-nt6j5ne3hmd2ed5eies4rar2dd70mdvp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.touristguide",
+            "certificate_hash": "3f195829937232e8a66670d930d3df922b339b5b"
+          }
+        },
+        {
+          "client_id": "742417803218-sijg2p3ifdk6aqcc0ti1atfht6l2rp47.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.touristguide",
+            "certificate_hash": "2dbbcb4c10efe7ba1fb3dfbd14b93ca91a215e72"
+          }
+        },
+        {
+          "client_id": "742417803218-r9sqso76qti6iqdkhsgfpj976408105o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1oiqObn_yLK9wYbtNfyR_rHkb6OlsQPw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "742417803218-r9sqso76qti6iqdkhsgfpj976408105o.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
