@@ -1,89 +1,129 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Make sure to install this package
+// HostProfile.js
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 import apiInstance from '../config/apiConfig';
-
 
 const HostProfile = () => {
   const navigation = useNavigation();
   const [uid, setUid] = useState('');
   const [fullName, setFullName] = useState('');
-
   const [loginWithGoogle, setLoginWithGoogle] = useState('');
 
-  useEffect(() => {
-    const fetchUid = async () => {
-      try {
-        const storedUid = await AsyncStorage.getItem('uid');
-        if (storedUid) {
-          setUid(storedUid);
-          // Call the API to fetch user info
-          const response = await apiInstance.get(`/users/GetUserById/${storedUid}`);
-          setFullName(response.data.name || 'N/A');
-          setLoginWithGoogle(response.data.loginWithGoogle || 'N/A');
-        } else {
-          Alert.alert('Error', 'No UID found. Please log in.');
-        }
-      } catch (error) {
-        console.error('Error fetching UID:', error);
-        Alert.alert('Error', 'Failed to retrieve UID.');
-      }
-    };
-    fetchUid();
-  }, []);
+  // UseFocusEffect to re-run fetch logic whenever this screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchUid = async () => {
+        try {
+          const storedUid = await AsyncStorage.getItem('uid');
+          if (storedUid) {
+            setUid(storedUid);
 
-  // session destroy krna  in logout (removed from local async storage)
+            // Call the API to fetch user info
+            const response = await apiInstance.get(`/users/GetUserById/${storedUid}`);
+            setFullName(response.data.name || 'N/A');
+            setLoginWithGoogle(response.data.loginWithGoogle || 'N/A');
+          } else {
+            Alert.alert('Error', 'No UID found. Please log in.');
+          }
+        } catch (error) {
+          console.error('Error fetching UID:', error);
+
+          // Network vs. server error
+          if (!error.response) {
+            Alert.alert(
+              'Network Error',
+              'Unable to reach the server. Please check your internet connection and try again.'
+            );
+          } else {
+            Alert.alert(
+              'Error',
+              error.response.data?.error ||
+                error.response.data?.message ||
+                error.message ||
+                'Failed to retrieve UID.'
+            );
+          }
+        }
+      };
+      fetchUid();
+    }, [])
+  );
+
   // Logout function
-  
   const handleLogout = async () => {
     try {
-      if (loginWithGoogle == '1') {
+      if (loginWithGoogle === '1') {
+        // Google user
         try {
-          console.log(" if try Working");
-          // Sign out from Google
           await GoogleSignin.signOut();
-
-          // Sign out from Firebase
           await auth().signOut();
+
           Alert.alert('Success', 'You have been logged out with Google');
           await AsyncStorage.removeItem('isGoogleUser');
-          navigation.navigate('Login')
+          navigation.navigate('Login');
         } catch (error) {
           console.error('Logout Error:', error.message);
-          Alert.alert('Error', error.message || 'Failed to log out. Please try again.');
+
+          if (!error.response) {
+            Alert.alert(
+              'Network Error',
+              'Unable to reach the server. Please check your internet connection.'
+            );
+          } else {
+            Alert.alert(
+              'Error',
+              error.response?.data?.error ||
+                error.response?.data?.message ||
+                error.message ||
+                'Failed to log out. Please try again.'
+            );
+          }
           navigation.replace('Login');
         }
-      }
-      else {
-        console.log("else Working");
-        // Remove the stored uid from AsyncStorage
+      } else {
+        // Regular user
         await AsyncStorage.removeItem('uid');
         Alert.alert('Success', 'You have been logged out!');
-        // Navigate the user to the login screen
-        navigation.replace('Login'); // Adjust based on your navigation setup
+        navigation.replace('Login');
       }
-
-
     } catch (error) {
-      Alert.alert('Error', 'Failed to log out. Please try again.');
       console.error('Logout Error:', error.message);
+
+      if (!error.response) {
+        Alert.alert(
+          'Network Error',
+          'Unable to reach the server. Please check your internet connection.'
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          error.response?.data?.error ||
+            error.response?.data?.message ||
+            error.message ||
+            'Failed to log out. Please try again.'
+        );
+      }
     }
   };
 
-
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       {/* Profile Title */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Host Profile</Text>
       </View>
-
 
       {/* Upper Profile Section */}
       <View style={styles.profileHeader}>
@@ -91,92 +131,83 @@ const HostProfile = () => {
           <View style={styles.avatarCircle}>
             {/* Avatar Initial */}
             <Text style={styles.avatarText}>
-              {fullName ? fullName.charAt(0) : ''} {/* Use the first letter of the name or 'A' as a default */}
+              {fullName ? fullName.charAt(0) : ''}
             </Text>
           </View>
           <View>
             <Text style={styles.profileName}>
-              {fullName || 'Loading...'} {/* Show "Loading..." until the name is fetched */}
+              {fullName || 'Loading...'}
             </Text>
           </View>
         </View>
       </View>
 
-
-
       {/* Settings Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
-        {/* Personal Information */}
         <TouchableOpacity
           style={styles.option}
           onPress={() => navigation.navigate('HostPersonalInfo')}
         >
           <View style={styles.optionRow}>
             <Image
-              source={require('../icons/user.png')} // Placeholder for your icon
+              source={require('../icons/user.png')}
               style={styles.optionIcon1}
             />
             <Text style={styles.optionText}>Personal Information</Text>
           </View>
           <Image
-            source={require('../icons/RightArrow.png')} // Placeholder for your icon
+            source={require('../icons/RightArrow.png')}
             style={styles.arrowIcon}
           />
         </TouchableOpacity>
       </View>
 
-
-      {/* Travelling Section */}
+      {/* Switch to User Mode */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>User Mode</Text>
-        {/* Switch to User Mode */}
         <TouchableOpacity
           style={styles.option}
-          onPress={() => navigation.navigate('UserTabs')} // Navigate to user menu
+          onPress={() => navigation.navigate('UserTabs')}
         >
           <View style={styles.optionRow}>
             <Image
-              source={require('../icons/switch.png')} // Placeholder for your icon
+              source={require('../icons/switch.png')}
               style={styles.optionIcon2}
             />
             <Text style={styles.optionText}>Switch to User Mode</Text>
           </View>
           <Image
-            source={require('../icons/RightArrow.png')} // Placeholder for your icon
+            source={require('../icons/RightArrow.png')}
             style={styles.arrowIcon}
           />
         </TouchableOpacity>
       </View>
-
 
       {/* Earnings Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Earnings</Text>
         <TouchableOpacity
           style={styles.option}
-          onPress={() => navigation.navigate('Earnings')} // Replace with your Earnings screen route
+          onPress={() => navigation.navigate('Earnings')}
         >
           <View style={styles.optionRow}>
             <Image
-              source={require('../icons/coin.png')} // Placeholder for your earnings icon
+              source={require('../icons/coin.png')}
               style={styles.optionIcon2}
             />
             <Text style={styles.optionText}>View your Earnings</Text>
           </View>
           <Image
-            source={require('../icons/RightArrow.png')} // Placeholder for your arrow icon
+            source={require('../icons/RightArrow.png')}
             style={styles.arrowIcon}
           />
         </TouchableOpacity>
       </View>
 
-
       {/* Log out Section */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.logoutButton}
-          onPress={handleLogout}
-        >
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
       </View>
@@ -184,16 +215,17 @@ const HostProfile = () => {
   );
 };
 
+export default HostProfile;
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1, // Ensures the ScrollView stretches with its content
+    flexGrow: 1,
     backgroundColor: 'white',
-    paddingHorizontal: 25, // Adds padding on the sides
-    paddingBottom: 100, // Extra space at the bottom to ensure Log Out button is visible
+    paddingHorizontal: 25,
+    paddingBottom: 100,
   },
   header: {
-    paddingTop: 67, // Top padding for the header
+    paddingTop: 67,
     paddingBottom: 15,
     marginLeft: 6,
   },
@@ -220,17 +252,17 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: 'black',
-    justifyContent: 'center', // Vertical centering
-    alignItems: 'center', // Horizontal centering
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 15,
   },
   avatarText: {
     color: '#fff',
     fontSize: 24,
-    fontWeight: 'bold', // Make text bold
-    lineHeight: 60, // Match the height of the circle to perfectly center vertically
-    textAlign: 'center', // Center text horizontally
-    paddingLeft: 5
+    fontWeight: 'bold',
+    lineHeight: 60,
+    textAlign: 'center',
+    paddingLeft: 5,
   },
   profileName: {
     fontSize: 22,
@@ -281,7 +313,7 @@ const styles = StyleSheet.create({
     height: 20,
   },
   footer: {
-    marginTop: 20, // Adds space above the footer
+    marginTop: 20,
   },
   logoutButton: {
     marginTop: -10,
@@ -292,8 +324,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textDecorationLine: 'underline',
     fontWeight: '500',
-    marginBottom: 10
+    marginBottom: 10,
   },
 });
-
-export default HostProfile;

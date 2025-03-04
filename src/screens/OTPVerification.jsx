@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 
-// ------------------- NEW IMPORTS FOR GOOGLE SIGN-IN -------------------
+// NEW IMPORTS FOR GOOGLE SIGN-IN
 import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -95,9 +95,7 @@ const OTPVerification = ({ route, navigation }) => {
     } catch (error) {
       Alert.alert(
         'Error',
-        error.response?.data?.error ||
-          error.message ||
-          'Failed to resend OTP.'
+        error.response?.data?.error || error.message || 'Failed to resend OTP.'
       );
     }
   };
@@ -116,7 +114,7 @@ const OTPVerification = ({ route, navigation }) => {
         email,
         otp: enteredOTP,
       });
-      // here 
+      // here
       if (verifyResponse.data?.success === false) {
         Alert.alert('Error', 'Wrong OTP, Signup Unsuccessful!', [
           { text: 'OK', onPress: () => navigation.navigate('Signup') },
@@ -144,9 +142,7 @@ const OTPVerification = ({ route, navigation }) => {
       console.error('[OTPVerification] Error:', error);
       Alert.alert(
         'Error',
-        error.response?.data?.error ||
-          error.message ||
-          'Failed to verify OTP and complete signup.'
+        error.response?.data?.error || error.message || 'Failed to verify OTP and complete signup.'
       );
     } finally {
       setLoading(false);

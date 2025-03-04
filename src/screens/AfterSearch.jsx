@@ -8,7 +8,8 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert,           
 } from 'react-native';
 import TopSection from '../components/TopSection2';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -33,27 +34,52 @@ const AfterSearch = () => {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        console.log("[AfterSearch] Fetching activities with params:", {
-          searchQuery, selectedRegion, rawDateRange, guestDetails
+        console.log('[AfterSearch] Fetching activities with params:', {
+          searchQuery,
+          selectedRegion,
+          rawDateRange,
+          guestDetails,
         });
         const response = await apiInstance.post('/search', {
-          searchQuery, selectedRegion, rawDateRange, guestDetails
+          searchQuery,
+          selectedRegion,
+          rawDateRange,
+          guestDetails,
         });
+
         if (response.data && response.data.activities) {
           console.log(`[AfterSearch] Received ${response.data.activities.length} activities.`);
           setActivities(response.data.activities);
         } else {
-          console.warn("[AfterSearch] No activities returned from search.");
+          console.warn('[AfterSearch] No activities returned from search.');
         }
       } catch (error) {
-        console.error("[AfterSearch] Error fetching activities:", error);
+        console.error('[AfterSearch] Error fetching activities:', error);
+
+        // --- Network vs. Server Error Handling ---
+        if (!error.response) {
+          // No response at all => likely network error
+          Alert.alert(
+            'Network Error',
+            'Unable to reach the server. Please check your internet connection and try again.'
+          );
+        } else {
+          // Server responded with an error (4xx, 5xx, etc.)
+          Alert.alert(
+            'Error',
+            error.response.data?.error ||
+              error.response.data?.message ||
+              error.message ||
+              'Something went wrong while searching. Please try again.'
+          );
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchActivities();
-    loadWishlist(); 
+    loadWishlist();
   }, [searchQuery, selectedRegion, rawDateRange, guestDetails, loadWishlist]);
 
   const isActivityLiked = (activityId) => !!wishlistIds[activityId];
@@ -63,9 +89,10 @@ const AfterSearch = () => {
   };
 
   const renderItem = ({ item }) => {
-    const activityImage = item.activityImages && item.activityImages[0]
-      ? { uri: item.activityImages[0] }
-      : require('../images/post1.jpg');
+    const activityImage =
+      item.activityImages && item.activityImages[0]
+        ? { uri: item.activityImages[0] }
+        : require('../images/post1.jpg');
 
     return (
       <TouchableOpacity
@@ -90,7 +117,6 @@ const AfterSearch = () => {
           <Text style={styles.price}>
             {item.pricePerGuest ? `From Rs ${item.pricePerGuest} / person` : ''}
           </Text>
-          <Text style={styles.rating}>{item.duration}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -99,15 +125,15 @@ const AfterSearch = () => {
   return (
     <View style={styles.container}>
       <TopSection
-        city={searchQuery ? searchQuery : "No City Specified"}
-        when={selectedDateRange ? selectedDateRange : "Any week"}
+        city={searchQuery ? searchQuery : 'No City Specified'}
+        when={selectedDateRange ? selectedDateRange : 'Any week'}
         guests={
           guestDetails && guestDetails.category
             ? `${guestDetails.value} ${guestDetails.category}`
-            : "No Guests Specified"
+            : 'No Guests Specified'
         }
         onIconPress={() => navigation.navigate('UserTabs', { screen: 'Explore' })}
-        onOtherPress={() => navigation.navigate("SearchScreen")}
+        onOtherPress={() => navigation.navigate('SearchScreen')}
       />
 
       {loading ? (
@@ -140,12 +166,12 @@ const styles = StyleSheet.create({
   noResultsContainer: {
     marginTop: 40,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   noResultsText: {
     fontSize: 18,
     color: '#555',
-    fontWeight: '500'
+    fontWeight: '500',
   },
   list: {
     paddingHorizontal: 11,
@@ -191,10 +217,6 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   price: {
-    fontSize: 12,
-    color: 'gray',
-  },
-  rating: {
     fontSize: 12,
     color: 'gray',
   },

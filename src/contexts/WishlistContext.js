@@ -6,9 +6,9 @@ import apiInstance from '../config/apiConfig';
 export const WishlistContext = createContext();
 
 export function WishlistProvider({ children }) {
-  const [wishlistIds, setWishlistIds] = useState({}); 
+  const [wishlistIds, setWishlistIds] = useState({});
 
-  // 1. Load user’s wishlist from backend
+  // Load user’s wishlist from backend
   async function loadWishlist() {
     try {
       const userId = await AsyncStorage.getItem('uid');
@@ -18,17 +18,18 @@ export function WishlistProvider({ children }) {
         // The data array contains activity IDs
         const ids = response.data.data;
         const temp = {};
-        ids.forEach(aid => {
+        ids.forEach((aid) => {
           temp[aid] = true;
         });
         setWishlistIds(temp);
       }
     } catch (error) {
-      console.error("[WishlistProvider] loadWishlist error:", error);
+      // We just log here, so we don't show an alert from the context
+      console.error('[WishlistProvider] loadWishlist error:', error);
     }
   }
 
-  // 2. Toggle function that updates the backend and local state
+  // Toggle function that updates the backend and local state
   async function toggleWishlist(activityId) {
     try {
       const userId = await AsyncStorage.getItem('uid');
@@ -36,7 +37,7 @@ export function WishlistProvider({ children }) {
       const response = await apiInstance.post(`/toggleWishlist/${userId}/${activityId}`);
       if (response.data.success) {
         const liked = response.data.liked;
-        setWishlistIds(prev => {
+        setWishlistIds((prev) => {
           const copy = { ...prev };
           if (liked) {
             copy[activityId] = true;
@@ -47,7 +48,9 @@ export function WishlistProvider({ children }) {
         });
       }
     } catch (error) {
-      console.error("[WishlistProvider] toggleWishlist error:", error);
+      // Log the error, but don't show a user-facing Alert in the context
+      // The screen calling toggleWishlist can handle user feedback if desired
+      console.error('[WishlistProvider] toggleWishlist error:', error);
     }
   }
 

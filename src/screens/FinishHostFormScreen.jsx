@@ -1,3 +1,4 @@
+// FinishHostFormScreen.js
 import React, { useState } from 'react';
 import {
   View,
@@ -30,14 +31,21 @@ const FinishHostFormScreen = () => {
       const imagesInfo = JSON.parse(await AsyncStorage.getItem('imagesInfo'));
       const hostInfo = JSON.parse(await AsyncStorage.getItem('hostInfo'));
 
-      // Validate that all required info is available
-      if (!activityInfo || !locationInfo || !scheduleInfo || !participantsInfo || !priceInfo || !imagesInfo || !hostInfo) {
+      if (
+        !activityInfo ||
+        !locationInfo ||
+        !scheduleInfo ||
+        !participantsInfo ||
+        !priceInfo ||
+        !imagesInfo ||
+        !hostInfo
+      ) {
         Alert.alert('Error', 'Some required information is missing. Please review the form.');
         setIsSubmitting(false);
         return;
       }
 
-      // Make the API call to create the activity
+      // Make the API call
       const response = await apiInstance.post('/create', {
         activityInfo,
         locationInfo,
@@ -50,8 +58,6 @@ const FinishHostFormScreen = () => {
 
       if (response.status === 201) {
         Alert.alert('Success', 'Your activity has been listed successfully!');
-        // Remove only the temporary keys related to activity creation,
-        // so that the "uid" (and other persistent keys) are preserved.
         await AsyncStorage.multiRemove([
           'activityInfo',
           'locationInfo',
@@ -67,13 +73,28 @@ const FinishHostFormScreen = () => {
       }
     } catch (error) {
       console.error('Error submitting activity:', error);
-      Alert.alert('Error', error.response?.data?.error || error.message || 'Failed to submit the activity.');
+
+      // --- Distinguish network vs. server error
+      if (!error.response) {
+        Alert.alert(
+          'Network Error',
+          'Unable to reach the server. Please check your internet connection and try again.'
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          error.response?.data?.error ||
+            error.response?.data?.message ||
+            error.message ||
+            'Failed to submit the activity.'
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const progress = 160 / 16.65; // Your progress calculation
+  const progress = 160 / 16.65;
 
   const handleBack = () => {
     navigation.goBack();
@@ -87,24 +108,28 @@ const FinishHostFormScreen = () => {
           <View style={styles.textContainer}>
             <Text style={styles.waitingText}>Awaiting Admin Approval</Text>
             <Text style={styles.waitingText1}>
-              Thank you for submitting the form. Please allow up to 24 hours for admin approval. We will notify you once the approval is processed.
+              Thank you for submitting the form. Please allow up to 24 hours for admin approval. We
+              will notify you once the approval is processed.
             </Text>
           </View>
         </View>
       </TouchableWithoutFeedback>
 
-      {/* FooterTwo component with loader and buttons */}
       <FooterTwo
         progress={progress}
         onNext={handleFinish}
         onBack={handleBack}
-        nextButtonText={isSubmitting ? <ActivityIndicator size="small" color="#fff" /> : 'Finish'}
+        nextButtonText={
+          isSubmitting ? <ActivityIndicator size="small" color="#fff" /> : 'Finish'
+        }
         backButtonText="Back"
         disableNext={isSubmitting} // Disable "Finish" button during API call
       />
     </SafeAreaView>
   );
 };
+
+export default FinishHostFormScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -140,5 +165,3 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
-
-export default FinishHostFormScreen;

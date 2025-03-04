@@ -1,3 +1,4 @@
+// src/screens/Login.jsx
 import React, { useState } from 'react';
 import {
   View,
@@ -8,16 +9,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  TouchableOpacity
+  TouchableOpacity,
 } from 'react-native';
 import InputField from '../components/InputField';
 import CustomButton from '../components/CustomButton';
 import GoogleButton from '../components/GoogleButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { useNavigation } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
+// --------- ONLY CHANGE: we import statusCodes so we can do error?.code checks safely
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 import apiInstance from '../config/apiConfig';
 
@@ -29,9 +31,8 @@ const Login = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Note: Removed the local GoogleSignin.configure call since it is done globally in App.js.
-
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const validateFields = () => {
     const newErrors = {};
     if (!email.trim()) {
@@ -50,7 +51,10 @@ const Login = () => {
     if (!validateFields()) return;
     setLoading(true);
     try {
-      const response = await apiInstance.post('/login', { email: email.trim(), password: password.trim() });
+      const response = await apiInstance.post('/login', {
+        email: email.trim(),
+        password: password.trim(),
+      });
       if (response.data?.uid) {
         await AsyncStorage.setItem('uid', response.data.uid);
         // For email/password, sign in with Firebase to set currentUser.
@@ -64,10 +68,18 @@ const Login = () => {
         throw new Error('Invalid response from server.');
       }
     } catch (error) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.error || error.message || 'Failed to log in. Please try again.'
-      );
+      // Show network vs server error
+      if (!error.response) {
+        Alert.alert(
+          'Network Error',
+          'Unable to reach the server. Please check your internet connection and try again.'
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          error.response?.data?.error || error.message || 'Failed to log in. Please try again.'
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -78,10 +90,12 @@ const Login = () => {
     try {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       const data = await GoogleSignin.signIn();
-      console.log('[DEBUG] Google SignIn result:', data);
+
+      // Exactly the same as your original code for credential:
       const googleCredential = auth.GoogleAuthProvider.credential(data.data.idToken);
-      console.log('Firebase Credential:', googleCredential);
       const firebaseUser = await auth().signInWithCredential(googleCredential);
+
+      // Then your server-side logic:
       const response = await apiInstance.post('/googleLogin', {
         uid: firebaseUser.user.uid,
         email: firebaseUser.user.email,
@@ -91,13 +105,38 @@ const Login = () => {
         cnic: '',
         loginWithGoogle: 1,
       });
+
+      // Save UID, navigate, etc.
       await AsyncStorage.setItem('uid', firebaseUser.user.uid);
       Alert.alert('Success', 'Login Successful!');
       await AsyncStorage.setItem('isGoogleUser', 'true');
       navigation.navigate('UserTabs', { screen: 'Explore' });
-    } catch (e) {
-      console.error('Google Sign-In Error:', e.message);
-      Alert.alert('Error', e.message || 'Something went wrong during Google Sign-In.');
+    } catch (error) {
+      // ---- 1) Log only in dev mode ----
+      if (__DEV__) {
+        console.log('Google Sign-In Error (dev only):', error);
+      }
+
+      // ---- 2) Check error code or message for NETWORK_ERROR, but use "?" to avoid crash
+      if (
+        error?.code === statusCodes.IN_PROGRESS ||
+        error?.code === statusCodes.SIGN_IN_CANCELLED
+      ) {
+        Alert.alert('Google Sign-In', 'Operation cancelled or already in progress.');
+      } else if (
+        error?.code === statusCodes.NETWORK_ERROR ||
+        (error?.message && error?.message.includes('NETWORK_ERROR'))
+      ) {
+        Alert.alert(
+          'Network Error',
+          'Unable to sign in due to network issues. Please check your internet connection and try again.'
+        );
+      } else {
+        Alert.alert('Error', 'Something went wrong during Google Sign-In. Please try again.');
+      }
+
+      // ---- 3) Important: do NOT rethrow, do not crash the app ----
+      return;
     } finally {
       setGoogleLoading(false);
     }
@@ -162,10 +201,22 @@ const Login = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 30 },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+  },
   title: { fontSize: 32, fontWeight: 'bold', color: '#FF5A5F', marginBottom: 30 },
   orText: { marginVertical: 15, fontSize: 16, color: '#666' },
-  lineContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 20, width: '100%', justifyContent: 'center' },
+  lineContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    width: '100%',
+    justifyContent: 'center',
+  },
   line: { width: '8%', height: 1.5, backgroundColor: '#ccc' },
   noAccountContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 10 },
   noAccountText: { fontSize: 16, color: '#666' },

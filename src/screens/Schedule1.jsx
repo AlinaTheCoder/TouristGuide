@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiInstance from '../config/apiConfig';
@@ -35,13 +35,14 @@ function formatTime(isoString) {
 function mapActivityToUI(activity) {
   return {
     id: activity.activityId, // for FlatList key
-    image: activity.activityImages && activity.activityImages.length > 0
-      ? { uri: activity.activityImages[0] }
-      : require('../images/post1.jpg'), // fallback
+    image:
+      activity.activityImages && activity.activityImages.length > 0
+        ? { uri: activity.activityImages[0] }
+        : require('../images/post1.jpg'), // fallback
     title: activity.activityTitle || 'Untitled',
     startDate: formatDate(activity?.dateRange?.startDate),
     endDate: formatDate(activity?.dateRange?.endDate),
-    startTime: formatTime(activity?.startTime), // or "N/A"
+    startTime: formatTime(activity?.startTime),
     endTime: formatTime(activity?.endTime),
     // Keep raw activity if you need it:
     original: activity,
@@ -78,6 +79,23 @@ export default function Schedule1() {
       setActivities(mapped);
     } catch (err) {
       console.error('[ERROR - Schedule1] Failed to fetch activities:', err.message);
+
+      // --- Network vs. Server error handling ---
+      if (!err.response) {
+        Alert.alert(
+          'Network Error',
+          'Unable to reach the server. Please check your internet connection and try again.'
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          err.response.data?.error ||
+            err.response.data?.message ||
+            err.message ||
+            'Failed to load schedule.'
+        );
+      }
+
       setError('Failed to load schedule.');
     } finally {
       setLoading(false);
@@ -88,6 +106,7 @@ export default function Schedule1() {
   useFocusEffect(
     React.useCallback(() => {
       fetchActivities();
+
       if (route.params?.updatedActivity) {
         const updatedUI = mapActivityToUI(route.params.updatedActivity);
         setActivities((prev) =>
@@ -99,7 +118,7 @@ export default function Schedule1() {
     }, [route.params?.updatedActivity])
   );
 
-  // On edit -> go to details (removed onActivityUpdated callback)
+  // On edit -> go to details
   const handleEdit = (item) => {
     navigation.navigate('AvailabilityScheduleDetails', {
       activity: item.original,
@@ -110,14 +129,17 @@ export default function Schedule1() {
     <ScheduleAvailability activity={item} onEdit={() => handleEdit(item)} />
   );
 
+  // Loading State
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#FF5A5F" />
+        <Text style={styles.loadingText}>Loading Schedule...</Text>
       </View>
     );
   }
 
+  // No activities
   if (!loading && activities.length === 0) {
     return <NoSchedule />;
   }
@@ -125,6 +147,7 @@ export default function Schedule1() {
   return (
     <View style={styles.container}>
       {error && <Text style={styles.errorText}>{error}</Text>}
+
       <FlatList
         data={activities}
         renderItem={renderActivity}
@@ -166,5 +189,10 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 100,
     paddingHorizontal: 12,
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#FF5A5F',
   },
 });

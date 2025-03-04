@@ -1,10 +1,17 @@
 // screens/Trips1.js
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  FlatList,
+  ActivityIndicator,
+  Alert, // <-- We'll use Alert here for error messages
+} from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import apiInstance from '../config/apiConfig';
+
 import TripsBlock from '../components/TripsBlock';
 import NoTrips from '../components/NoTrips';
 
@@ -18,37 +25,60 @@ export default function Trips() {
     navigation.navigate('AvailabilityScheduleDetails', { activity });
   };
 
-  useEffect(() => {
-    const fetchUserTrips = async () => {
-      try {
-        setIsLoading(true);
-        const userId = await AsyncStorage.getItem('uid');
-        if (!userId) {
-          setActivities([]);
-          return;
-        }
-
-        // Fetch from /trips/user/:userId
-        const response = await apiInstance.get(`/trips/user/${userId}`);
-        const data = response.data;
-        setActivities(data.trips || []);
-      } catch (err) {
-        console.error('[Trips1] Error:', err);
-      } finally {
+  // Fetch the current user's trips
+  const fetchUserTrips = async () => {
+    try {
+      setIsLoading(true);
+      const userId = await AsyncStorage.getItem('uid');
+      if (!userId) {
+        setActivities([]);
         setIsLoading(false);
+        return;
       }
-    };
 
-    fetchUserTrips();
-  }, []);
+      // Fetch from /trips/user/:userId
+      const response = await apiInstance.get(`/trips/user/${userId}`);
+      const data = response.data;
+      setActivities(data.trips || []);
+    } catch (err) {
+      console.error('[Trips1] Error fetching user trips:', err);
+      setActivities([]);
+
+      // --- Network vs. Server Error for user feedback ---
+      if (!err.response) {
+        Alert.alert(
+          'Network Error',
+          'Unable to reach the server. Please check your internet connection and try again.'
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          err.response.data?.error ||
+            err.response.data?.message ||
+            err.message ||
+            'Failed to load trips. Please try again.'
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // UseFocusEffect so that when this screen is focused, we refetch the user's trips
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserTrips();
+    }, [])
+  );
 
   const renderActivity = ({ item }) => (
-    <TripsBlock 
-      activity={item} 
-      onEdit={() => handleEdit(item)} 
+    <TripsBlock
+      activity={item}
+      onEdit={() => handleEdit(item)}
     />
   );
 
+  // Loader
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -58,10 +88,12 @@ export default function Trips() {
     );
   }
 
+  // No trips
   if (activities.length === 0) {
     return <NoTrips />;
   }
 
+  // Render trips list
   return (
     <View style={styles.container}>
       <FlatList
@@ -98,13 +130,13 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center', 
-    alignItems: 'center', 
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'white',
   },
   loadingText: {
-    marginTop: 15, 
-    fontSize: 16, 
+    marginTop: 15,
+    fontSize: 16,
     color: '#FF5A5F',
   },
 });

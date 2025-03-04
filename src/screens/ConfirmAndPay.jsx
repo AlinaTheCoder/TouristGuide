@@ -17,7 +17,6 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import apiInstance from "../config/apiConfig";
 import { useStripe } from '@stripe/stripe-react-native';
 
-
 const ConfirmAndPay = () => {
   const route = useRoute();
   const navigation = useNavigation();
@@ -75,8 +74,7 @@ const ConfirmAndPay = () => {
     fetchUserId();
   }, []);
 
-  // 3) Load stored date/time/guest — only if you want to keep them for the same activity
-  //    This may re-populate them, but we just cleared them if activityId changed.
+  // 3) Load stored date/time/guest – if you want to keep them for the same activity
   useEffect(() => {
     const loadPersistedValues = async () => {
       try {
@@ -112,6 +110,21 @@ const ConfirmAndPay = () => {
         }
       } catch (err) {
         console.error("Error fetching activity data:", err);
+        // Distinguish network vs. server error
+        if (!err.response) {
+          Alert.alert(
+            "Network Error",
+            "Unable to reach the server. Please check your internet connection and try again."
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            err.response?.data?.error ||
+              err.response?.data?.message ||
+              err.message ||
+              "Failed to load activity data."
+          );
+        }
         setError(err.message);
       } finally {
         setLoading(false);
@@ -150,7 +163,21 @@ const ConfirmAndPay = () => {
         }
       } catch (err) {
         console.error("Error fetching time slots:", err);
-        Alert.alert("Error", "Failed to retrieve available slots");
+        // Distinguish network vs. server error
+        if (!err.response) {
+          Alert.alert(
+            "Network Error",
+            "Unable to reach the server. Please check your internet connection and try again."
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            err.response?.data?.error ||
+              err.response?.data?.message ||
+              err.message ||
+              "Failed to retrieve available slots"
+          );
+        }
       } finally {
         setSlotLoading(false);
       }
@@ -241,11 +268,13 @@ const ConfirmAndPay = () => {
       const payload = { date: dateString, slotId: timeSlot, requestedGuests: guestCount, userId };
       console.log("[ConfirmAndPay] Initiating payment...");
       setLoading(true);
+
       const paymentResponse = await apiInstance.post(`/createPaymentIntent/${activityId}`, payload);
       if (!paymentResponse.data.success) {
         throw new Error(paymentResponse.data.message);
       }
       const { paymentIntentId, clientSecret } = paymentResponse.data;
+
       const { error: initError } = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: "Tourist Guide App",
@@ -276,7 +305,6 @@ const ConfirmAndPay = () => {
       console.log("[ConfirmAndPay] Payment successful. Finalizing booking...");
       payload.paymentIntentId = paymentIntentId;
       const bookingResponse = await apiInstance.post(`/bookTimeSlot/${activityId}`, payload);
-      // Here
       if (bookingResponse.data.success) {
         Alert.alert("Success", "Booking successful!", [
           {
@@ -284,10 +312,6 @@ const ConfirmAndPay = () => {
             onPress: () => navigation.navigate('ActivityDetails', { activityId })
           }
         ]);
-        // Optionally clear persisted fields if desired:
-        // await AsyncStorage.removeItem('selectedDate');
-        // await AsyncStorage.removeItem('guestCount');
-        // await AsyncStorage.removeItem('selectedTimeSlot');
       } else {
         Alert.alert("Booking Error", bookingResponse.data.message);
       }
@@ -311,6 +335,7 @@ const ConfirmAndPay = () => {
 
         <Text style={styles.headerText}>Book Activity</Text>
       </View>
+
       <View style={styles.experienceCard}>
         {activityData.activityImages && activityData.activityImages.length > 0 ? (
           <Image source={{ uri: activityData.activityImages[0] }} style={styles.experienceImage} />

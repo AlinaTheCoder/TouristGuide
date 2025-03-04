@@ -9,11 +9,12 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert, 
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import apiInstance from "../config/apiConfig";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { WishlistContext } from '../contexts/WishlistContext'; 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { WishlistContext } from "../contexts/WishlistContext";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -52,9 +53,10 @@ const ActivityDetails = () => {
     const fetchActivityDetails = async () => {
       try {
         setLoading(true);
-        // You may keep ?includeLikedStatus=true if your backend still returns it,
-        // but it won't override the final context-based logic
-        const response = await apiInstance.get(`/activityDetails/${activityId}?includeLikedStatus=true`);
+        const response = await apiInstance.get(
+          `/activityDetails/${activityId}?includeLikedStatus=true`
+        );
+
         if (response.data.success) {
           setActivityData(response.data.data);
         } else {
@@ -62,6 +64,25 @@ const ActivityDetails = () => {
         }
       } catch (err) {
         console.error("Error fetching activity details:", err);
+
+        // --- NEW: Distinguish Network vs Server error ---
+        if (!err.response) {
+          // No server response => likely network/offline issue
+          Alert.alert(
+            "Network Error",
+            "Unable to reach the server. Please check your internet connection and try again."
+          );
+        } else {
+          // Server responded but with some error
+          Alert.alert(
+            "Error",
+            err.response.data?.error ||
+              err.response.data?.message ||
+              err.message ||
+              "Failed to fetch activity details."
+          );
+        }
+
         setError(err.message);
       } finally {
         setLoading(false);
@@ -75,7 +96,6 @@ const ActivityDetails = () => {
   const isHeartSelected = !!wishlistIds[activityId];
 
   const toggleLike = async () => {
-    // Just call the context toggler
     await toggleWishlist(activityId);
   };
 
@@ -96,7 +116,7 @@ const ActivityDetails = () => {
         <View style={styles.topIconsContainer}>
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => navigation.navigate('UserTabs', { screen: 'Explore' })}
+            onPress={() => navigation.navigate("UserTabs", { screen: "Explore" })}
           >
             <Image
               source={require("../icons/BackArrow.png")}
@@ -176,7 +196,9 @@ const ActivityDetails = () => {
             {activityData.address}, {activityData.city}
           </Text>
           <Text style={styles.subTitle}>
-            {`${formatDate(activityData.dateRange.startDate)} - ${formatDate(activityData.dateRange.endDate)}`}
+            {`${formatDate(activityData.dateRange.startDate)} - ${formatDate(
+              activityData.dateRange.endDate
+            )}`}
           </Text>
           <Text style={styles.subTitle}>
             {`${formatTime(activityData.startTime)} - ${formatTime(activityData.endTime)}`}
@@ -242,13 +264,19 @@ const ActivityDetails = () => {
           <Text style={styles.descriptionHeader}>What You'll Enjoy?</Text>
           <Text style={styles.descriptionText}>
             {isExpanded
-              ? (activityData.activityDescription || "No activity description provided")
-              : `${(activityData.activityDescription || "No activity description provided").slice(0, 100)}`}
-            {!isExpanded && activityData.activityDescription && activityData.activityDescription.length > 100 && (
-              <Text style={styles.readMore} onPress={() => setIsExpanded(true)}>
-                {" "}Read more
-              </Text>
-            )}
+              ? activityData.activityDescription || "No activity description provided"
+              : `${(activityData.activityDescription || "No activity description provided").slice(
+                  0,
+                  100
+                )}`}
+            {!isExpanded &&
+              activityData.activityDescription &&
+              activityData.activityDescription.length > 100 && (
+                <Text style={styles.readMore} onPress={() => setIsExpanded(true)}>
+                  {" "}
+                  Read more
+                </Text>
+              )}
           </Text>
         </View>
         <View style={styles.lineContainer}>
@@ -259,14 +287,17 @@ const ActivityDetails = () => {
         {activityData.locationDescription?.trim() !== "" && (
           <>
             <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionHeader}>Why Is This Location Significant?</Text>
+              <Text style={styles.descriptionHeader}>
+                Why Is This Location Significant?
+              </Text>
               <Text style={styles.descriptionText}>
                 {isExpanded
                   ? activityData.locationDescription
                   : `${activityData.locationDescription.slice(0, 100)}`}
                 {!isExpanded && activityData.locationDescription.length > 100 && (
                   <Text style={styles.readMore} onPress={() => setIsExpanded(true)}>
-                    {" "}Read more
+                    {" "}
+                    Read more
                   </Text>
                 )}
               </Text>
@@ -288,9 +319,11 @@ const ActivityDetails = () => {
         </View>
         <TouchableOpacity
           style={styles.footerButton}
-          onPress={() => navigation.navigate('ConfirmAndPay', {
-            activityId: activityId,
-          })}
+          onPress={() =>
+            navigation.navigate("ConfirmAndPay", {
+              activityId: activityId,
+            })
+          }
         >
           <Text style={styles.footerButtonText}>Book Activity</Text>
         </TouchableOpacity>
@@ -311,9 +344,9 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
   },
   imageContainer: {
     width: screenWidth,
@@ -370,7 +403,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
     marginTop: 5,
     fontSize: 15,
-    color: '#555'
+    color: "#555",
   },
   lineContainer: {
     alignItems: "center",
@@ -424,7 +457,7 @@ const styles = StyleSheet.create({
     height: 31,
     marginRight: 20,
     marginLeft: 6,
-    backgroundColor: "white"
+    backgroundColor: "white",
   },
   sectionHeader: {
     fontSize: 17,
@@ -435,7 +468,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
-    marginTop: -7
+    marginTop: -7,
   },
   sectionDescription: {
     fontSize: 15,
@@ -446,7 +479,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginTop: 5,
     color: "#555",
-    width: '98%'
+    width: "98%",
   },
   descriptionContainer: {
     padding: 20,

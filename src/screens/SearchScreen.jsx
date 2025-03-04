@@ -117,6 +117,7 @@ function SearchScreen() {
                 placeholderTextColor="#888"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                cursorColor="gray" // Add this line right here
               />
             </View>
 
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     fontSize: 16,
-    color: '#929292',
+    color: 'black',
     letterSpacing: 0.5,
   },
   searchIcon: {

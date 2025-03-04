@@ -1,6 +1,6 @@
-// Explore.js
+// Explore.jsx
 import React, { useEffect, useState, useContext, useCallback } from 'react';
-import { ScrollView, View, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { ScrollView, View, ActivityIndicator, Alert, StyleSheet, Text } from 'react-native';
 import TopSection from '../components/TopSection';
 import PostSection from '../components/PostSection';
 import SearchScreen from './SearchScreen';
@@ -14,40 +14,62 @@ const Explore = () => {
   const navigation = useNavigation();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Track if an error occurred, e.g. for potential UI usage
   const [error, setError] = useState(null);
-  // New state for category filtering
+
+  // For category filtering
   const [selectedCategory, setSelectedCategory] = useState('');
   const { wishlistIds, loadWishlist } = useContext(WishlistContext);
 
-  // Fetch activities from the server with optional category filter
+  // ------------------- Fetch Activities (with optional category) -------------------
   const fetchActivities = useCallback(async (category = '') => {
     try {
       setLoading(true);
+      setError(null); // Reset any previous error
       const response = await apiInstance.get('/getAllListedExploreActivities', {
         params: { category },
       });
+
       if (response.data.success && response.data.data.length > 0) {
-        console.log("[DEBUG] Fetched Activities:", response.data.data);
-        const formattedActivities = response.data.data.map(activity => ({
+        console.log('[DEBUG] Fetched Activities:', response.data.data);
+
+        const formattedActivities = response.data.data.map((activity) => ({
           id: activity.id,
-          PostImages: activity.activityImages.map(imgUrl => ({ uri: imgUrl })),
+          PostImages: activity.activityImages.map((imgUrl) => ({ uri: imgUrl })),
           PostCaption: activity.activityTitle,
           PostDate: formatDateRange(activity.dateRange),
-          activityCategory: activity.activityCategory, // include category in mapping
+          activityCategory: activity.activityCategory,
         }));
         setActivities(formattedActivities);
       } else {
+        // If no activities or success=false, just setActivities to empty
         setActivities([]);
       }
     } catch (err) {
-      console.error("[ERROR] Fetching Explore Activities:", err);
+      console.error('[ERROR] Fetching Explore Activities:', err);
       setError(err);
-      Alert.alert("Error", "Failed to fetch activities. Please try again later.");
+
+      // --- Network vs. Server error check ---
+      if (!err.response) {
+        Alert.alert(
+          'Network Error',
+          'Unable to reach the server. Please check your internet connection and try again.'
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          err.response.data?.message ||
+            err.message ||
+            'Failed to fetch activities. Please try again later.'
+        );
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // ------------------- Initial & Category-based Fetch -------------------
   useEffect(() => {
     fetchActivities(selectedCategory);
   }, [fetchActivities, selectedCategory]);
@@ -58,28 +80,28 @@ const Explore = () => {
     }, [selectedCategory, fetchActivities])
   );
 
-  // Socket.IO realtime updates
+  // ------------------- Socket.IO Realtime Updates -------------------
   useEffect(() => {
     socket.on('connect', () => {
-      console.log("Connected to realtime updates via Socket.IO");
+      console.log('Connected to realtime updates via Socket.IO');
     });
 
     socket.on('exploreActivitiesUpdate', (data) => {
-      console.log("Realtime update received:", data);
+      console.log('Realtime update received:', data);
       if (data && data.success && data.data) {
-        let formattedActivities = data.data.map(activity => ({
+        let formattedActivities = data.data.map((activity) => ({
           id: activity.id,
-          PostImages: activity.activityImages.map(imgUrl => ({ uri: imgUrl })),
+          PostImages: activity.activityImages.map((imgUrl) => ({ uri: imgUrl })),
           PostCaption: activity.activityTitle,
           PostDate: formatDateRange(activity.dateRange),
           likedStatus: activity.likedStatus,
-          activityCategory: activity.activityCategory, // include category
+          activityCategory: activity.activityCategory,
         }));
 
         // If a category is selected, filter by activityCategory
         if (selectedCategory) {
-          formattedActivities = formattedActivities.filter(item =>
-            item.activityCategory === selectedCategory
+          formattedActivities = formattedActivities.filter(
+            (item) => item.activityCategory === selectedCategory
           );
         }
 
@@ -88,7 +110,7 @@ const Explore = () => {
     });
 
     socket.on('disconnect', () => {
-      console.log("Disconnected from realtime updates");
+      console.log('Disconnected from realtime updates');
     });
 
     return () => {
@@ -98,12 +120,15 @@ const Explore = () => {
     };
   }, [selectedCategory]);
 
+  // ------------------- Formatting Helpers -------------------
   const formatDateRange = (dateRange) => {
-    if (!dateRange || typeof dateRange !== "object" || !dateRange.startDate || !dateRange.endDate) {
-      return "No Date";
+    if (!dateRange || typeof dateRange !== 'object' || !dateRange.startDate || !dateRange.endDate) {
+      return 'No Date';
     }
     const getMonthAbbreviation = (isoDate) => {
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthNames = [
+        'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',
+      ];
       const dateObj = new Date(isoDate);
       return `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}`;
     };
@@ -119,14 +144,25 @@ const Explore = () => {
   useFocusEffect(
     useCallback(() => {
       loadWishlist();
-      return () => { };
+      return () => {};
     }, [loadWishlist])
   );
 
-  // Callback for when a user selects a category from TopSection
+  // When user selects a category from TopSection
   const handleCategorySelect = (category) => {
-    setSelectedCategory(prev => (prev === category ? '' : category));
+    // If the user taps the same category again, toggle back to '' (i.e., show all)
+    setSelectedCategory((prev) => (prev === category ? '' : category));
   };
+
+  // ------------------- Render -------------------
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF5A5F" />
+        <Text style={styles.loadingText}>Loading Activities...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsHorizontalScrollIndicator={false}>
@@ -137,29 +173,21 @@ const Explore = () => {
         onCategorySelect={handleCategorySelect}
       />
 
-      {loading ? (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#000" />
-        </View>
+      {activities.length === 0 ? (
+        <NoExploreActivity />
       ) : (
-        <>
-          {activities.length === 0 ? (
-            <NoExploreActivity />
-          ) : (
-            <View style={styles.container1}>
-              {activities.map((activity, index) => (
-                <PostSection
-                  key={index}
-                  activityId={activity.id}
-                  PostImages={activity.PostImages}
-                  PostCaption={activity.PostCaption}
-                  PostDate={activity.PostDate}
-                  onPress={() => navigation.navigate("ActivityDetails", { activityId: activity.id })}
-                />
-              ))}
-            </View>
-          )}
-        </>
+        <View style={styles.container1}>
+          {activities.map((activity, index) => (
+            <PostSection
+              key={index}
+              activityId={activity.id}
+              PostImages={activity.PostImages}
+              PostCaption={activity.PostCaption}
+              PostDate={activity.PostDate}
+              onPress={() => navigation.navigate('ActivityDetails', { activityId: activity.id })}
+            />
+          ))}
+        </View>
       )}
     </ScrollView>
   );
@@ -170,5 +198,15 @@ export default Explore;
 const styles = StyleSheet.create({
   container: { backgroundColor: 'white' },
   container1: { marginBottom: 90 },
-  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#FF5A5F',
+  },
 });

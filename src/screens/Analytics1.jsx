@@ -1,6 +1,14 @@
 // screens/Analytics1.js
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,          // <-- We'll use Alert for error handling
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -13,45 +21,37 @@ import apiInstance from '../config/apiConfig';
 // ----------------------------------------------------------------
 const formatDate = (dateKey) => {
   if (!dateKey) return '';
-  // dateKey is like "2025-03-27". We'll parse it to a Date object.
   const parts = dateKey.split('-'); // ["2025","03","27"]
   if (parts.length !== 3) return dateKey;
   const [year, month, day] = parts.map((p) => parseInt(p, 10));
   if (!year || !month || !day) return dateKey;
 
-  // Create a Date object
   const dateObj = new Date(year, month - 1, day);
   if (isNaN(dateObj.getTime())) return dateKey;
 
-  // e.g. "Mar 27, 2025"
   const options = { month: 'short', day: 'numeric', year: 'numeric' };
   return dateObj.toLocaleDateString(undefined, options);
 };
 
 const formatTime = (slotString) => {
-  // e.g. "10-00_am_-_2-00_pm" => "10:00 am - 2:00 pm"
   if (!slotString) return '';
   return slotString.replace(/_/g, ' ');
 };
 
 const categorizeBooking = (booking) => {
-  // booking.bookingDate is "2025-03-27"
   if (!booking.bookingDate) return 'Upcoming';
 
-  // Parse the dateKey into a Date
-  const parts = booking.bookingDate.split('-'); // e.g. ["2025","03","27"]
+  const parts = booking.bookingDate.split('-');
   if (parts.length !== 3) return 'Upcoming';
 
   const [year, month, day] = parts.map((p) => parseInt(p, 10));
   const dateObj = new Date(year, month - 1, day);
-
   if (isNaN(dateObj.getTime())) return 'Upcoming';
 
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  // Compare dateOnly portions
   const dateOnly = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
   const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const tomorrowOnly = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
@@ -84,7 +84,7 @@ export default function Analytics1() {
           // 1) Get the current host's ID from AsyncStorage
           const hostId = await AsyncStorage.getItem('uid');
           if (!hostId) {
-            // If no host ID stored, user isn't recognized => show NoAnalytics
+            // If no host ID, user isn't recognized => show NoAnalytics
             setHostName('');
             setAllBookings([]);
             return;
@@ -99,6 +99,23 @@ export default function Analytics1() {
           }
         } catch (error) {
           console.log('[Analytics1] Error fetching analytics data:', error);
+
+          // --- Network vs. Server Error Handling ---
+          if (!error.response) {
+            Alert.alert(
+              'Network Error',
+              'Unable to reach the server. Please check your internet connection and try again.'
+            );
+          } else {
+            Alert.alert(
+              'Error',
+              error.response.data?.error ||
+                error.response.data?.message ||
+                error.message ||
+                'Failed to fetch analytics data. Please try again.'
+            );
+          }
+          setAllBookings([]);
         } finally {
           setLoading(false);
         }
@@ -111,10 +128,12 @@ export default function Analytics1() {
   // Count total
   const totalBookings = allBookings.length;
 
+  // Show loader in center of screen
   if (loading) {
     return (
-      <View style={styles.loaderContainer}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF5A5F" />
+        <Text style={styles.loadingText}>Loading Analytics...</Text>
       </View>
     );
   }
@@ -125,9 +144,9 @@ export default function Analytics1() {
   }
 
   // Filter by activeTab
-  const filteredBookings = allBookings.filter((booking) => {
-    return categorizeBooking(booking).toLowerCase() === activeTab.toLowerCase();
-  });
+  const filteredBookings = allBookings.filter(
+    (booking) => categorizeBooking(booking).toLowerCase() === activeTab.toLowerCase()
+  );
 
   // Count how many in each category
   const categories = ['Checking out', 'Currently hosting', 'Arriving soon', 'Upcoming'];
@@ -281,9 +300,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     textAlign: 'center',
   },
-  loaderContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'white',
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#FF5A5F',
   },
 });
