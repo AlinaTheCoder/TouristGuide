@@ -35,10 +35,20 @@ const DateRangePicker = ({
   };
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Reset hours to ensure accurate date comparison
+  
   const defaultMaxDate = new Date(today);
   defaultMaxDate.setMonth(today.getMonth() + 1);
 
-  const parsedMinDate = minAllowedDate ? new Date(minAllowedDate) : today;
+  // Parse the minAllowedDate from the activity
+  let parsedMinDate = minAllowedDate ? new Date(minAllowedDate) : today;
+  parsedMinDate.setHours(0, 0, 0, 0); // Reset hours to ensure accurate date comparison
+  
+  // If the activity's minimum date is in the past, set the minimum date to today
+  if (parsedMinDate < today) {
+    parsedMinDate = today;
+  }
+  
   const parsedMaxDate = maxAllowedDate ? new Date(maxAllowedDate) : defaultMaxDate;
 
   return (
