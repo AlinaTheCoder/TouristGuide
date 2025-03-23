@@ -1,5 +1,4 @@
-// PostSection.js
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +10,9 @@ import {
 } from 'react-native';
 import { WishlistContext } from '../contexts/WishlistContext';
 
+
 const { width: screenWidth } = Dimensions.get('window');
+
 
 const PostSection = ({
   PostImages,
@@ -20,22 +21,30 @@ const PostSection = ({
   onPress,
   activityId,
 }) => {
+  // Active dot state
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+
   // Access the context's wishlist and toggle function
   const { wishlistIds, toggleWishlist } = useContext(WishlistContext);
 
+
   // No local state. Instead, check the context directly for the liked state:
   const isLiked = !!wishlistIds[activityId];
+
 
   // Toggling calls the context function, which updates wishlistIds
   const handleToggleLike = () => {
     toggleWishlist(activityId);
   };
 
+
   const handleScroll = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const currentIndex = Math.round(offsetX / screenWidth);
-    // Track image index if needed
+    setActiveImageIndex(currentIndex);
   };
+
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.container}>
@@ -53,9 +62,16 @@ const PostSection = ({
         </ScrollView>
         <View style={styles.dotContainer}>
           {PostImages.map((_, index) => (
-            <View key={index} style={styles.dot} />
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                index === activeImageIndex && styles.activeDot
+              ]}
+            />
           ))}
         </View>
+
 
         {/* Heart icon toggles the wishlist */}
         <TouchableOpacity style={styles.likeIcon} onPress={handleToggleLike}>
@@ -65,6 +81,7 @@ const PostSection = ({
           />
         </TouchableOpacity>
 
+
         <View style={styles.captionContainer}>
           <Text style={styles.caption}>{PostCaption}</Text>
           <Text style={styles.date}>{PostDate}</Text>
@@ -73,6 +90,7 @@ const PostSection = ({
     </TouchableOpacity>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: { backgroundColor: 'white' },
@@ -134,6 +152,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'lightgrey',
     marginHorizontal: 4,
   },
+  activeDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'white',
+  },
 });
 
 export default PostSection;
+

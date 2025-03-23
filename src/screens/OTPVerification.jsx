@@ -12,20 +12,24 @@ import {
   Alert,
 } from 'react-native';
 
+
 // NEW IMPORTS FOR GOOGLE SIGN-IN
 import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // ----------------------------------------------------------------------
 
+
 import { useNavigation } from '@react-navigation/native';
 import CustomButton from '../components/CustomButton';
 import GoogleButton from '../components/GoogleButton';
 import apiInstance from '../config/apiConfig';
 
+
 const OTPVerification = ({ route, navigation }) => {
   // Retrieve the user details passed from the Signup screen
   const { fullName, email, password } = route.params;
+
 
   // ------------------- States -------------------
   const [otp, setOtp] = useState(['', '', '', '']);
@@ -33,8 +37,10 @@ const OTPVerification = ({ route, navigation }) => {
   const [timer, setTimer] = useState(0);
   const [loading, setLoading] = useState(false);
 
+
   // NEW: State to track Google login progress
   const [googleLoading, setGoogleLoading] = useState(false);
+
 
   // ------------------- useEffect to configure Google Sign-In -------------------
   useEffect(() => {
@@ -58,6 +64,7 @@ const OTPVerification = ({ route, navigation }) => {
   }, []);
   // ------------------------------------------------------------------------------
 
+
   // ------------------- Timer effect for Resend Code -------------------
   useEffect(() => {
     let interval;
@@ -71,6 +78,7 @@ const OTPVerification = ({ route, navigation }) => {
     return () => clearInterval(interval);
   }, [timer]);
 
+
   // ------------------- Handle OTP Changes -------------------
   const handleChange = (text, index) => {
     if (text.length > 1) return;
@@ -81,6 +89,7 @@ const OTPVerification = ({ route, navigation }) => {
       inputs.current[index + 1].focus();
     }
   };
+
 
   // ------------------- Resend Code -------------------
   const handleResendCode = async () => {
@@ -99,6 +108,7 @@ const OTPVerification = ({ route, navigation }) => {
       );
     }
   };
+
 
   // ------------------- Verify OTP and Signup -------------------
   const handleContinue = async () => {
@@ -149,6 +159,7 @@ const OTPVerification = ({ route, navigation }) => {
     }
   };
 
+
   // ------------------- Google Login Flow -------------------
   const onGoogleButtonPress = async () => {
     setGoogleLoading(true); // Start the loader
@@ -174,10 +185,12 @@ const OTPVerification = ({ route, navigation }) => {
         loginWithGoogle: 1,
       });
 
+
       // 6. Save user info locally, alert success, navigate
       await AsyncStorage.setItem('uid', firebaseUser.user.uid);
       Alert.alert('Success', `Welcome, ${firebaseUser.user.displayName}!`);
       await AsyncStorage.setItem('isGoogleUser', 'true');
+
 
       navigation.navigate('UserTabs', {
         screen: 'Explore',
@@ -191,11 +204,13 @@ const OTPVerification = ({ route, navigation }) => {
   };
   // ------------------------------------------------------------------
 
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={styles.container}>
         <Text style={styles.title}>Verify Your Email</Text>
         <Text style={styles.subtitle}>Enter the code we sent to your email.</Text>
+
 
         <View style={styles.otpContainer}>
           {otp.map((digit, index) => (
@@ -212,13 +227,16 @@ const OTPVerification = ({ route, navigation }) => {
           ))}
         </View>
 
+
         {loading ? (
           <ActivityIndicator size="large" color="#FF5A5F" />
         ) : (
           <CustomButton title="Continue" onPress={handleContinue} />
         )}
 
+
         <Text style={styles.orText}>OR</Text>
+
 
         {/* Conditionally show loading or Google button */}
         {googleLoading ? (
@@ -226,6 +244,7 @@ const OTPVerification = ({ route, navigation }) => {
         ) : (
           <GoogleButton onPress={onGoogleButtonPress} />
         )}
+
 
         <View style={styles.lineContainer}>
           <View style={styles.line} />
@@ -245,6 +264,7 @@ const OTPVerification = ({ route, navigation }) => {
     </TouchableWithoutFeedback>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -316,4 +336,7 @@ const styles = StyleSheet.create({
   },
 });
 
+
 export default OTPVerification;
+
+

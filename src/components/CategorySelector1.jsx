@@ -27,7 +27,7 @@ const CategorySelector = ({ selectedCategory, onSelectCategory, categories }) =>
         <Picker
           selectedValue={selectedCategory}
           onValueChange={handleValueChange}
-          style={styles.picker}
+          style={[styles.picker, { marginTop: -4 }]}
           onBlur={handleBlur}
           dropdownIconColor="transparent" // This hides the default arrow on Android
         >
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   dropdownIconContainer: {
     position: 'absolute',
     right: 19,
-    top: -2,
+    top: -4,
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',

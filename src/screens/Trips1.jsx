@@ -37,7 +37,8 @@ export default function Trips() {
       }
 
       // Fetch from /trips/user/:userId
-      const response = await apiInstance.get(`/trips/user/${userId}`);
+      // In fetchUserTrips function
+const response = await apiInstance.get(`/trips/user/${userId}?nocache=${Date.now()}`);
       const data = response.data;
       setActivities(data.trips || []);
     } catch (err) {

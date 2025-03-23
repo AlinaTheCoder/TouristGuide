@@ -1,3 +1,4 @@
+// UserProfile.jsx
 import React, { useState } from 'react';
 import {
   View,
@@ -7,19 +8,23 @@ import {
   Image,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 import apiInstance from '../config/apiConfig';
+import { launchImageLibrary } from 'react-native-image-picker';
+
 
 const UserProfile = () => {
   const navigation = useNavigation();
   const [uid, setUid] = useState('');
   const [fullName, setFullName] = useState('');
   const [loginWithGoogle, setLoginWithGoogle] = useState('');
-
+  const [profileImage, setProfileImage] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   // UseFocusEffect to re-run fetch logic whenever this screen is focused
   useFocusEffect(
     React.useCallback(() => {
@@ -29,17 +34,26 @@ const UserProfile = () => {
           if (storedUid) {
             setUid(storedUid);
 
+
+
+
+
+
+
+
             // Call the API to fetch user info
             const response = await apiInstance.get(`/users/GetUserById/${storedUid}`);
             setFullName(response.data.name || 'N/A');
             setLoginWithGoogle(response.data.loginWithGoogle || 'N/A');
+            setProfileImage(response.data.profileImage || null);
           } else {
             Alert.alert('Error', 'No UID found. Please log in.');
           }
         } catch (error) {
           console.error('Error fetching UID:', error);
 
-          // --- Network vs. Server Error Handling ---
+
+          // Network vs. server error
           if (!error.response) {
             Alert.alert(
               'Network Error',
@@ -49,9 +63,9 @@ const UserProfile = () => {
             Alert.alert(
               'Error',
               error.response.data?.error ||
-                error.response.data?.message ||
-                error.message ||
-                'Failed to retrieve user data. Please try again.'
+              error.response.data?.message ||
+              error.message ||
+              'Failed to retrieve UID.'
             );
           }
         }
@@ -60,67 +74,172 @@ const UserProfile = () => {
     }, [])
   );
 
+
+  // In UserProfile.jsx, update the handleImagePick function
+  const handleImagePick = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.8,
+        maxWidth: 800,
+        maxHeight: 800,
+      });
+
+
+      if (result.didCancel) return;
+      if (result.errorCode) {
+        Alert.alert('Error', result.errorMessage);
+        return;
+      }
+
+
+      const selectedImage = result.assets[0];
+
+
+      // Validate image size (max 2MB)
+      if (selectedImage.fileSize > 2 * 1024 * 1024) {
+        Alert.alert(
+          'Image Too Large',
+          'Please select an image smaller than 2MB.'
+        );
+        return;
+      }
+
+
+      // Create FormData for the image upload
+      const formData = new FormData();
+      formData.append('image', {
+        uri: selectedImage.uri,
+        type: selectedImage.type,
+        name: selectedImage.fileName || 'profile.jpg',
+      });
+      formData.append('uid', uid);
+
+
+      // Show loading indicator
+      setIsUploading(true);
+
+
+      // Upload the image
+      const response = await apiInstance.post('/users/updateProfileImage', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+
+      setIsUploading(false);
+
+
+      if (response.data.imageUrl) {
+        setProfileImage(response.data.imageUrl);
+        Alert.alert('Success', 'Profile image updated successfully!');
+      }
+    } catch (error) {
+      setIsUploading(false);
+      console.error('Image upload error:', error);
+
+
+      if (!error.response) {
+        Alert.alert(
+          'Network Error',
+          'Unable to reach the server. Please check your internet connection.'
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message ||
+          'Failed to update profile image. Please try again.'
+        );
+      }
+    }
+  };
   // Logout function
   const handleLogout = async () => {
     try {
       if (loginWithGoogle === '1') {
-        // If the user logged in via Google
+        // Google user
         try {
-          console.log(' if try Working');
-          // Sign out from Google
           await GoogleSignin.signOut();
-
-          // Sign out from Firebase
           await auth().signOut();
-          Alert.alert('Success', 'You have been logged out with Google!');
+
+
+
+
+
+
+
+
+          Alert.alert('Success', 'You have been logged out with Google');
           await AsyncStorage.removeItem('isGoogleUser');
           navigation.navigate('Login');
         } catch (error) {
           console.error('Logout Error:', error.message);
 
+
+
+
+
+
+
+
           if (!error.response) {
             Alert.alert(
               'Network Error',
-              'Unable to reach the server. Please check your internet connection and try again.'
+              'Unable to reach the server. Please check your internet connection.'
             );
           } else {
             Alert.alert(
               'Error',
-              error.response.data?.error ||
-                error.response.data?.message ||
-                error.message ||
-                'Failed to log out. Please try again.'
+              error.response?.data?.error ||
+              error.response?.data?.message ||
+              error.message ||
+              'Failed to log out. Please try again.'
             );
           }
           navigation.replace('Login');
         }
       } else {
-        console.log('else Working');
-        // Remove the stored uid from AsyncStorage
+        // Regular user
         await AsyncStorage.removeItem('uid');
         Alert.alert('Success', 'You have been logged out!');
-        // Navigate the user to the login screen
         navigation.replace('Login');
       }
     } catch (error) {
       console.error('Logout Error:', error.message);
 
+
+
+
+
+
+
+
       if (!error.response) {
         Alert.alert(
           'Network Error',
-          'Unable to reach the server. Please check your internet connection and try again.'
+          'Unable to reach the server. Please check your internet connection.'
         );
       } else {
         Alert.alert(
           'Error',
-          error.response.data?.error ||
-            error.response.data?.message ||
-            error.message ||
-            'Failed to log out. Please try again.'
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message ||
+          'Failed to log out. Please try again.'
         );
       }
     }
   };
+
+
+
+
+
+
+
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -129,15 +248,57 @@ const UserProfile = () => {
         <Text style={styles.headerTitle}>Profile</Text>
       </View>
 
+
+
+
+
+
+
+
       {/* Upper Profile Section */}
       <View style={styles.profileHeader}>
         <View style={styles.profileInfo}>
-          <View style={styles.avatarCircle}>
-            {/* Avatar Initial */}
-            <Text style={styles.avatarText}>
-              {fullName ? fullName.charAt(0) : ''}
-            </Text>
-          </View>
+          {profileImage ? (
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ uri: profileImage }}
+                style={styles.avatarCircle}
+                resizeMode="cover"
+              />
+              {isUploading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#000" />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.editIconContainer}
+                  onPress={handleImagePick}
+                >
+                  <Image
+                    source={require('../icons/edit.png')}
+                    style={styles.editIcon}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarText}>
+                  {fullName ? fullName.charAt(0) : ''}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.editIconContainer}
+                onPress={handleImagePick}
+              >
+                <Image
+                  source={require('../icons/edit.png')}
+                  style={styles.editIcon}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
           <View>
             <Text style={styles.profileName}>
               {fullName || 'Loading...'}
@@ -146,49 +307,58 @@ const UserProfile = () => {
         </View>
       </View>
 
+
       {/* Settings Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
-        {/* Personal Information */}
         <TouchableOpacity
           style={styles.option}
           onPress={() => navigation.navigate('PersonalInfo')}
         >
           <View style={styles.optionRow}>
             <Image
-              source={require('../icons/user.png')} // Placeholder for your icon
+              source={require('../icons/user.png')}
               style={styles.optionIcon1}
             />
             <Text style={styles.optionText}>Personal Information</Text>
           </View>
           <Image
-            source={require('../icons/RightArrow.png')} // Placeholder for your icon
+            source={require('../icons/RightArrow.png')}
             style={styles.arrowIcon}
           />
         </TouchableOpacity>
       </View>
 
-      {/* Hosting Section */}
+
+
+
+
+
+
+
+      {/* Switch to User Mode */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Host Mode</Text>
-        {/* Switch to Host Mode */}
+        <Text style={styles.sectionTitle}>User Mode</Text>
         <TouchableOpacity
           style={styles.option}
-          onPress={() => navigation.navigate('HostTabs')} // This line navigates to the Host menu (Tabs component)
+          onPress={() => navigation.navigate('HostTabs')}
         >
           <View style={styles.optionRow}>
             <Image
-              source={require('../icons/switch.png')} // Placeholder for your icon
+              source={require('../icons/switch.png')}
               style={styles.optionIcon2}
             />
             <Text style={styles.optionText}>Switch to Host Mode</Text>
           </View>
           <Image
-            source={require('../icons/RightArrow.png')} // Placeholder for your icon
+            source={require('../icons/RightArrow.png')}
             style={styles.arrowIcon}
           />
         </TouchableOpacity>
       </View>
+
+
+
 
       {/* Log out Section */}
       <View style={styles.footer}>
@@ -200,14 +370,28 @@ const UserProfile = () => {
   );
 };
 
+
+
+
+
+
+
+
 export default UserProfile;
+
+
+
+
+
+
+
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1, // Ensures the ScrollView stretches
+    flexGrow: 1,
     backgroundColor: 'white',
     paddingHorizontal: 25,
-    paddingBottom: 40, // Adds space below the content for visibility
+    paddingBottom: 100,
   },
   header: {
     paddingTop: 67,
@@ -240,6 +424,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
+    overflow: 'hidden', // This ensures the image respects the rounded corners
   },
   avatarText: {
     color: '#fff',
@@ -247,7 +432,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     lineHeight: 60,
     textAlign: 'center',
-    paddingLeft: 5,
+    paddingLeft: 1,
   },
   profileName: {
     fontSize: 22,
@@ -301,7 +486,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   logoutButton: {
-    paddingTop: 13,
+    marginTop: -10,
     backgroundColor: 'transparent',
   },
   logoutText: {
@@ -309,5 +494,37 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textDecorationLine: 'underline',
     fontWeight: '500',
+    marginBottom: 10,
+  },
+  // Add these to styles in UserProfile.jsx
+  avatarContainer: {
+    position: 'relative',
+  },
+  editIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 5,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  editIcon: {
+    width: 16,
+    height: 16,
+    tintColor: '#555',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 5,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
 });
+
+

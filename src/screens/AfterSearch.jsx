@@ -21,15 +21,38 @@ const numColumns = 2;
 const itemMargin = 10;
 const itemWidth = (width - (numColumns + 1) * itemMargin * 2) / numColumns;
 
+// Utility function to properly capitalize city names
+const formatCityName = (cityName) => {
+  if (!cityName) return '';
+  
+  // Handle cities with multiple words (e.g., "dera ghazi khan" -> "Dera Ghazi Khan")
+  return cityName
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 const AfterSearch = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { searchQuery, selectedRegion, selectedDateRange, rawDateRange, guestDetails } = route.params;
+  const { searchQuery, selectedRegion, selectedDateRange, rawDateRange, guestDetails, city } = route.params;
 
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [formattedCity, setFormattedCity] = useState('');
 
   const { wishlistIds, toggleWishlist, loadWishlist } = useContext(WishlistContext);
+
+  // Format the city name when it changes
+  useEffect(() => {
+    if (city) {
+      setFormattedCity(formatCityName(city));
+    } else if (searchQuery) {
+      setFormattedCity(formatCityName(searchQuery));
+    } else {
+      setFormattedCity('No City Specified');
+    }
+  }, [city, searchQuery]);
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -39,12 +62,15 @@ const AfterSearch = () => {
           selectedRegion,
           rawDateRange,
           guestDetails,
+          city,
         });
+        
         const response = await apiInstance.post('/search', {
           searchQuery,
           selectedRegion,
           rawDateRange,
           guestDetails,
+          city,
         });
 
         if (response.data && response.data.activities) {
@@ -80,7 +106,7 @@ const AfterSearch = () => {
 
     fetchActivities();
     loadWishlist();
-  }, [searchQuery, selectedRegion, rawDateRange, guestDetails, loadWishlist]);
+  }, [searchQuery, selectedRegion, rawDateRange, guestDetails, city, loadWishlist]);
 
   const isActivityLiked = (activityId) => !!wishlistIds[activityId];
 
@@ -125,7 +151,7 @@ const AfterSearch = () => {
   return (
     <View style={styles.container}>
       <TopSection
-        city={searchQuery ? searchQuery : 'No City Specified'}
+        city={formattedCity}
         when={selectedDateRange ? selectedDateRange : 'Any week'}
         guests={
           guestDetails && guestDetails.category
@@ -137,10 +163,10 @@ const AfterSearch = () => {
       />
 
       {loading ? (
-        <ActivityIndicator size="large" color="#FF5A5F" style={{ marginTop: 20 }} />
+        <ActivityIndicator size="large" color="#FF5A5F" style={{ marginTop: 230 }} />
       ) : activities.length === 0 ? (
         <View style={styles.noResultsContainer}>
-          <Text style={styles.noResultsText}>No Results Found</Text>
+          <Text style={styles.noResultsText}>No Results Found!</Text>
         </View>
       ) : (
         <FlatList

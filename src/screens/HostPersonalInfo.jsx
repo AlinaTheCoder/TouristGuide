@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiInstance from '../config/apiConfig';
 
+
 const HostPersonalInfo = () => {
   const [uid, setUid] = useState('');
   const [fullName, setFullName] = useState('');
@@ -28,7 +29,9 @@ const HostPersonalInfo = () => {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [isGoogleUser, setIsGoogleUser] = useState(false);
 
+
   const navigation = useNavigation();
+
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -37,12 +40,15 @@ const HostPersonalInfo = () => {
         const googleUserFlag = await AsyncStorage.getItem('isGoogleUser');
         setIsGoogleUser(googleUserFlag === 'true');
 
+
         if (storedUid) {
           setUid(storedUid);
+
 
           // CHANGED: call the new endpoint:
           const response = await apiInstance.get(`/hostPersonalInfo/${storedUid}`);
           const { name, email, phoneNumber, cnic } = response.data;
+
 
           setFullName(name || 'N/A');
           setEmail(email || 'N/A');
@@ -53,6 +59,7 @@ const HostPersonalInfo = () => {
         }
       } catch (error) {
         console.error('Error fetching user info:', error);
+
 
         // --- Network vs. Server error
         if (!error.response) {
@@ -74,6 +81,7 @@ const HostPersonalInfo = () => {
     fetchUserInfo();
   }, []);
 
+
   const updateName = async (newName) => {
     try {
       const response = await apiInstance.put(`/users/EditName/${uid}`, { name: newName });
@@ -83,6 +91,7 @@ const HostPersonalInfo = () => {
       }
     } catch (error) {
       console.error('Error updating name:', error);
+
 
       if (!error.response) {
         Alert.alert(
@@ -101,6 +110,7 @@ const HostPersonalInfo = () => {
     }
   };
 
+
   const changePassword = async (newPassword) => {
     try {
       const response = await apiInstance.put('/users/ChangePassword', { uid, newPassword });
@@ -110,6 +120,7 @@ const HostPersonalInfo = () => {
       }
     } catch (error) {
       console.error('Error changing password:', error);
+
 
       if (!error.response) {
         Alert.alert(
@@ -128,14 +139,20 @@ const HostPersonalInfo = () => {
     }
   };
 
+// Toggle password visibility
+const togglePasswordVisibility = () => {
+  setPasswordVisible(!isPasswordVisible);
+};
   const saveEdit = () => {
     if (editingField === 'fullName') {
       const trimmedName = tempValue.trim();
+
 
       if (trimmedName.length < 4) {
         Alert.alert('Invalid Name', 'Name must be at least 4 characters long (letters only).');
         return;
       }
+
 
       if (!/^[A-Za-z ]+$/.test(trimmedName)) {
         Alert.alert(
@@ -145,6 +162,7 @@ const HostPersonalInfo = () => {
         return;
       }
 
+
       updateName(tempValue);
     } else if (editingField === 'password') {
       if (tempValue.length < 6) {
@@ -152,11 +170,14 @@ const HostPersonalInfo = () => {
         return;
       }
 
+
       changePassword(tempValue);
     }
 
+
     closeEditModal();
   };
+
 
   const closeEditModal = () => {
     setModalVisible(false);
@@ -165,13 +186,15 @@ const HostPersonalInfo = () => {
     setPasswordVisible(false);
   };
 
+
   const startEditing = (field) => {
     setEditingField(field);
     setTempValue(field === 'fullName' ? fullName : password);
     setModalVisible(true);
   };
 
-  const renderEditableRow = (label, value, field, buttonText) => (
+
+const renderEditableRow = (label, value, field, buttonText) => (
     <View style={styles.infoRow}>
       <View style={styles.infoLeft}>
         <Text style={styles.infoLabel}>{label}</Text>
@@ -224,6 +247,7 @@ const HostPersonalInfo = () => {
         </View>
       </View>
 
+
       {/* Password Section */}
       {!isGoogleUser && (
         <View style={styles.infoRow}>
@@ -234,7 +258,7 @@ const HostPersonalInfo = () => {
         </View>
       )}
 
-      <Modal
+<Modal
         transparent={true}
         visible={isModalVisible}
         animationType="fade"
@@ -245,12 +269,32 @@ const HostPersonalInfo = () => {
             <Text style={styles.modalLabel}>
               {editingField === 'fullName' ? 'Edit Name' : 'Change Password'}
             </Text>
-            <TextInput
-              style={styles.modalInputField}
-              value={tempValue}
-              onChangeText={setTempValue}
-              secureTextEntry={editingField === 'password' && !isPasswordVisible}
-            />
+            
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.modalInputField}
+                value={tempValue}
+                onChangeText={setTempValue}
+                secureTextEntry={editingField === 'password' && !isPasswordVisible}
+                placeholder={editingField === 'password' ? 'Enter new password' : ''}
+                placeholderTextColor="#aaaaaa"
+              />
+              
+              {editingField === 'password' && (
+                <TouchableOpacity 
+                  style={styles.eyeIconContainer} 
+                  onPress={togglePasswordVisibility}
+                >
+                  <Image 
+                    source={isPasswordVisible 
+                      ? require('../icons/eye-open.png') 
+                      : require('../icons/eye-closed.png')} 
+                    style={styles.eyeIcon} 
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+            
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={closeEditModal} style={styles.outlineButton}>
                 <Text style={styles.outlineButtonText}>Cancel</Text>
@@ -262,9 +306,11 @@ const HostPersonalInfo = () => {
           </View>
         </View>
       </Modal>
+   
     </ScrollView>
   );
 };
+
 
 export default HostPersonalInfo;
 
@@ -358,13 +404,27 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
   },
-  modalInputField: {
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderColor: '#cccccc',
-    paddingVertical: 10,
     marginBottom: 20,
+  },
+  modalInputField: {
+    flex: 1,
+    paddingVertical: 10,
     fontSize: 18,
-    textAlign: 'center',
+    color: '#000000',
+    textAlign: 'left',
+  },
+  eyeIconContainer: {
+    padding: 5,
+  },
+  eyeIcon: {
+    width: 22,
+    height: 22,
+    tintColor: '#555',
   },
   modalActions: {
     flexDirection: 'row',

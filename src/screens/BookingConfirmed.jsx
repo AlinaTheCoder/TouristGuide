@@ -1,38 +1,35 @@
 import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
-const OfflineFallback = ({ onRetry }) => {
+const BookingConfirmed = () => {
+  const navigation = useNavigation();
+
+  const handleContinueBooking = () => {
+    navigation.navigate('UserTabs', { screen: 'Explore' });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
         <Image
-          source={require("../images/internet_error.jpg")} // Ensure the image exists in assets folder
+          source={require("../images/booked.png")} // Ensure the image exists in assets folder
           style={styles.image}
         />
-        <Text style={styles.title}>Oops!</Text>
-        <Text style={styles.subtitle}>It seems there is something wrong with your internet connection. Please connect to the internet and start TOURISTGUIDE again.</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+        <Text style={styles.title}>Booking Confirmed!</Text>
+        <Text style={styles.subtitle}>Thank you for your order. You will receive email confirmation shortly.</Text>
+        <TouchableOpacity style={styles.button} onPress={handleContinueBooking}>
+            <Text style={styles.buttonText}>Continue Booking</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-  },
-  heading: {
-    fontSize: 38, // Increased font size
-    fontWeight: '600', // Increased font weight
-    color: 'black',
-    letterSpacing: 0.6,
-    marginLeft: 31,
-    marginTop: 67,
-    marginBottom: 0
   },
   content: {
     flex: 1,
@@ -40,26 +37,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   image: {
-    width: 260, // Adjust width as per the image
-    height: 260, // Adjust height as per the image
-    marginBottom: 20,
+    width: 220, // Adjust width as per the image
+    height: 220, // Adjust height as per the image
+    marginBottom: 40,
     marginTop: -40,
     resizeMode: 'contain',
   },
   title: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '500', // Made bold
-    marginBottom: 16,
+    marginBottom: 18,
     color: 'black'
   },
   subtitle: {
     fontSize: 16,
     color: "#555",
     textAlign: 'center', // Align text centered and justify
-    width: 350,
-    marginBottom: 5
+    width: 320,
+    marginBottom: 10
   },
-  retryButton: {
+  button: {
     backgroundColor: 'white',
     paddingVertical: 10,
     borderRadius: 8,
@@ -70,7 +67,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
     marginLeft: 20
   },
-  retryButtonText: {
+  buttonText: {
     color: 'black',
     fontSize: 15,
     fontWeight: '500',
@@ -78,5 +75,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default OfflineFallback;
-
+export default BookingConfirmed;

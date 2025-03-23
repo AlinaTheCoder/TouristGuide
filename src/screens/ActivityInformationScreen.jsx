@@ -52,7 +52,6 @@ const ActivityInformationScreen = () => {
       }
     };
 
-
     const fetchHostName = async () => {
       try {
         const storedUid = await AsyncStorage.getItem('uid');

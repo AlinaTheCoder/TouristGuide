@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiInstance from '../config/apiConfig';
 
+
 const PersonalInfo = () => {
   const [uid, setUid] = useState('');
   const [fullName, setFullName] = useState('');
@@ -25,7 +26,9 @@ const PersonalInfo = () => {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [isGoogleUser, setIsGoogleUser] = useState(false);
 
+
   const navigation = useNavigation();
+
 
   // Fetch user info on mount
   useEffect(() => {
@@ -34,10 +37,13 @@ const PersonalInfo = () => {
         const storedUid = await AsyncStorage.getItem('uid');
         const googleUserFlag = await AsyncStorage.getItem('isGoogleUser');
 
+
         setIsGoogleUser(googleUserFlag === 'true');
+
 
         if (storedUid) {
           setUid(storedUid);
+
 
           // Fetch user data from backend
           const response = await apiInstance.get(`/users/GetUserById/${storedUid}`);
@@ -48,6 +54,7 @@ const PersonalInfo = () => {
         }
       } catch (error) {
         console.error('Error fetching UID:', error);
+
 
         // --- Network vs Server error handling ---
         if (!error.response) {
@@ -67,8 +74,10 @@ const PersonalInfo = () => {
       }
     };
 
+
     fetchUid();
   }, []);
+
 
   // Update Name
   const updateName = async (newName) => {
@@ -80,6 +89,7 @@ const PersonalInfo = () => {
       }
     } catch (error) {
       console.error('Error updating name:', error);
+
 
       if (!error.response) {
         Alert.alert(
@@ -98,6 +108,7 @@ const PersonalInfo = () => {
     }
   };
 
+
   // Change Password
   const changePassword = async (newPassword) => {
     try {
@@ -108,6 +119,7 @@ const PersonalInfo = () => {
       }
     } catch (error) {
       console.error('Error changing password:', error);
+
 
       if (!error.response) {
         Alert.alert(
@@ -126,10 +138,12 @@ const PersonalInfo = () => {
     }
   };
 
+
   // Save changes from modal
   const saveEdit = () => {
     if (editingField === 'fullName') {
       const trimmedName = tempValue.trim();
+
 
       if (trimmedName.length < 4) {
         Alert.alert(
@@ -139,6 +153,7 @@ const PersonalInfo = () => {
         return;
       }
 
+
       if (!/^[A-Za-z ]+$/.test(trimmedName)) {
         Alert.alert(
           'Invalid Name',
@@ -147,6 +162,7 @@ const PersonalInfo = () => {
         return;
       }
 
+
       updateName(tempValue);
     } else if (editingField === 'password') {
       if (tempValue.length < 6) {
@@ -154,11 +170,14 @@ const PersonalInfo = () => {
         return;
       }
 
+
       changePassword(tempValue);
     }
 
+
     closeEditModal();
   };
+
 
   // Close modal
   const closeEditModal = () => {
@@ -168,12 +187,20 @@ const PersonalInfo = () => {
     setPasswordVisible(false);
   };
 
+
   // Start editing
   const startEditing = (field) => {
     setEditingField(field);
     setTempValue(field === 'fullName' ? fullName : password);
     setModalVisible(true);
   };
+
+
+  // Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setPasswordVisible(!isPasswordVisible);
+  };
+
 
   const renderEditableRow = (label, value, field, buttonText) => (
     <View style={styles.infoRow}>
@@ -189,6 +216,7 @@ const PersonalInfo = () => {
     </View>
   );
 
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
@@ -201,8 +229,10 @@ const PersonalInfo = () => {
       </View>
       <Text style={styles.headerTitle}>Personal Info</Text>
 
+
       {/* Name Section */}
       {renderEditableRow('Legal name', fullName, 'fullName', 'Edit')}
+
 
       {/* Email Section */}
       <View style={styles.infoRow}>
@@ -211,6 +241,7 @@ const PersonalInfo = () => {
           <Text style={styles.infoValue}>{email}</Text>
         </View>
       </View>
+
 
       {/* Password Section (Only if not a Google user) */}
       {!isGoogleUser && (
@@ -221,6 +252,7 @@ const PersonalInfo = () => {
           </TouchableOpacity>
         </View>
       )}
+
 
       <Modal
         transparent={true}
@@ -233,12 +265,32 @@ const PersonalInfo = () => {
             <Text style={styles.modalLabel}>
               {editingField === 'fullName' ? 'Edit Name' : 'Change Password'}
             </Text>
-            <TextInput
-              style={styles.modalInputField}
-              value={tempValue}
-              onChangeText={setTempValue}
-              secureTextEntry={editingField === 'password' && !isPasswordVisible}
-            />
+           
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.modalInputField}
+                value={tempValue}
+                onChangeText={setTempValue}
+                secureTextEntry={editingField === 'password' && !isPasswordVisible}
+                placeholder={editingField === 'password' ? 'Enter new password' : ''}
+                placeholderTextColor="#aaaaaa"
+              />
+             
+              {editingField === 'password' && (
+                <TouchableOpacity
+                  style={styles.eyeIconContainer}
+                  onPress={togglePasswordVisibility}
+                >
+                  <Image
+                    source={isPasswordVisible
+                      ? require('../icons/eye-open.png')
+                      : require('../icons/eye-closed.png')}
+                    style={styles.eyeIcon}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+           
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={closeEditModal} style={styles.outlineButton}>
                 <Text style={styles.outlineButtonText}>Cancel</Text>
@@ -253,6 +305,7 @@ const PersonalInfo = () => {
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -344,14 +397,27 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
   },
-  modalInputField: {
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#333',
+    marginBottom: 15,
+  },
+  modalInputField: {
+    flex: 1,
     paddingVertical: 8,
     fontSize: 18,
-    color: '#333',
-    marginBottom: 15,
+    color: '#000000',
     backgroundColor: 'transparent',
+  },
+  eyeIconContainer: {
+    padding: 5,
+  },
+  eyeIcon: {
+    width: 22,
+    height: 22,
+    tintColor: '#555',
   },
   modalActions: {
     flexDirection: 'row',
@@ -386,5 +452,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
 
 export default PersonalInfo;

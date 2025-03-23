@@ -1,5 +1,5 @@
 // App.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Alert, StyleSheet, View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -8,6 +8,8 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import NetInfo from '@react-native-community/netinfo';
 import OfflineFallback from './src/components/OfflineFallback ';
+import { initializeNotifications } from './src/utils/notificationService';
+
 
 // Import your screen components
 import ActivityInformationScreen from './src/screens/ActivityInformationScreen';
@@ -35,8 +37,13 @@ import CertificateViewer from './src/screens/CertificateViewer';
 import OTPVerification from './src/screens/OTPVerification';
 import AuthLoading from './src/screens/AuthLoading';
 import { WishlistProvider } from './src/contexts/WishlistContext';
+import FeedbackScreen from './src/screens/FeedbackScreen';
+import BookingConfirmed from './src/screens/BookingConfirmed';
+
+
 
 const Stack = createNativeStackNavigator();
+
 
 // A simple Toast component to display minimalistic messages
 const Toast = ({ message }) => (
@@ -44,6 +51,7 @@ const Toast = ({ message }) => (
     <Text style={toastStyles.text}>{message}</Text>
   </View>
 );
+
 
 const toastStyles = StyleSheet.create({
   container: {
@@ -63,11 +71,35 @@ const toastStyles = StyleSheet.create({
   },
 });
 
+
 export default function App() {
   const [isOffline, setIsOffline] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const navigationRef = useRef(null);
+ 
+  // Add this navigation helper function
+  const navigate = (name, params) => {
+    if (navigationRef.current) {
+      navigationRef.current.navigate(name, params);
+    } else {
+      // Retry navigation if navigator isn't ready yet
+      setTimeout(() => {
+        if (navigationRef.current) {
+          navigationRef.current.navigate(name, params);
+        } else {
+          // One more retry with longer delay
+          setTimeout(() => {
+            if (navigationRef.current) {
+              navigationRef.current.navigate(name, params);
+            }
+          }, 3000);
+        }
+      }, 1000); // Initial delay to allow navigation to initialize
+    }
+  };
 
-  // Monitor network connectivity (all hooks are called on every render)
+
+  // Monitor network connectivity
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setIsOffline(!state.isConnected);
@@ -76,6 +108,7 @@ export default function App() {
       unsubscribe();
     };
   }, []);
+
 
   // Retry function for OfflineFallback's "Retry" button
   const handleRetry = () => {
@@ -94,26 +127,37 @@ export default function App() {
     });
   };
 
-  // Configure Google Sign-In and set a global error handler
+
+  // Configure Google Sign-In
   useEffect(() => {
-    async function configureGoogleSignIn() {
+    const configureGoogleSignIn = async () => {
       try {
-        const hasPlayServices = await GoogleSignin.hasPlayServices({
+        // Check for Google Play Services
+        await GoogleSignin.hasPlayServices({
           showPlayServicesUpdateDialog: true,
         });
-        if (hasPlayServices) {
-          GoogleSignin.configure({
-            offlineAccess: true,
-            webClientId:
-              '742417803218-r9sqso76qti6iqdkhsgfpj976408105o.apps.googleusercontent.com',
-          });
+
+
+        // Configure Google Sign-In with correct web client ID
+        GoogleSignin.configure({
+          webClientId: '742417803218-r9sqso76qti6iqdkhsgfpj976408105o.apps.googleusercontent.com',
+          offlineAccess: false,
+        });
+
+
+        if (__DEV__) {
+          console.log('Google Sign-In configured successfully');
         }
       } catch (error) {
-        console.error('GoogleSignin configuration error:', error);
+        console.error('Google Sign-In configuration error:', error);
       }
-    }
+    };
+
+
     configureGoogleSignIn();
 
+
+    // Global error handler
     const globalErrorHandler = (error, isFatal) => {
       console.error('Global Error:', error);
       Alert.alert(
@@ -122,10 +166,53 @@ export default function App() {
         [{ text: 'OK' }]
       );
     };
+
+
     if (ErrorUtils && ErrorUtils.setGlobalHandler) {
       ErrorUtils.setGlobalHandler(globalErrorHandler);
     }
   }, []);
+ 
+  // Initialize notifications
+  useEffect(() => {
+    const setupNotifications = async () => {
+      try {
+        // Handle notification opened (navigation logic)
+        const handleNotificationOpen = (remoteMessage) => {
+          if (!remoteMessage) return;
+         
+          console.log('Notification opened:', remoteMessage);
+         
+          // Handle navigation based on notification type
+          if (remoteMessage.data?.type === 'FEEDBACK_REMINDER') {
+            const activityId = remoteMessage.data.activityId;
+           
+            if (activityId) {
+              // Use the navigate helper instead of direct navigation
+              navigate('FeedbackScreen', { activityId });
+            }
+          }
+        };
+       
+        // Initialize notifications and store unsubscribe function
+        const unsubscribe = await initializeNotifications(handleNotificationOpen);
+       
+        // Clean up on unmount
+        return () => {
+          if (unsubscribe) {
+            unsubscribe();
+          }
+        };
+      } catch (error) {
+        console.error('Error setting up notifications:', error);
+      }
+    };
+   
+    setupNotifications();
+  }, []); // Empty dependency array to run once on mount
+
+
+
 
   return (
     <StripeProvider
@@ -137,7 +224,7 @@ export default function App() {
           {isOffline ? (
             <OfflineFallback onRetry={handleRetry} />
           ) : (
-            <NavigationContainer>
+            <NavigationContainer ref={navigationRef}>
               <Stack.Navigator
                 initialRouteName="AuthLoading"
                 screenOptions={{ headerShown: false }}
@@ -196,6 +283,7 @@ export default function App() {
                 />
                 <Stack.Screen name="Login" component={Login} />
                 <Stack.Screen name="Signup" component={Signup} />
+                <Stack.Screen name="FeedbackScreen" component={FeedbackScreen} />
                 <Stack.Screen name="PersonalInfo" component={PersonalInfo} />
                 <Stack.Screen name="HostTabs" component={HostTabs} />
                 <Stack.Screen
@@ -211,6 +299,10 @@ export default function App() {
                   name="CertificateViewer"
                   component={CertificateViewer}
                   options={{ headerShown: true, title: 'Certificate' }}
+                />
+                <Stack.Screen
+                  name="BookingConfirmed"
+                  component={BookingConfirmed}
                 />
               </Stack.Navigator>
             </NavigationContainer>

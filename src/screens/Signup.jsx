@@ -11,11 +11,14 @@ import {
 } from 'react-native';
 import InputField from '../components/InputField';
 import CustomButton from '../components/CustomButton';
-import GoogleButton from '../components/GoogleButton';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiInstance from '../config/apiConfig';
 import { useNavigation } from '@react-navigation/native';
+import PasswordField from '../components/PasswordField';
+
 
 const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/;
+
 
 const Signup = () => {
   const navigation = useNavigation();
@@ -24,6 +27,7 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
 
   // Validate form fields
   const validateFields = () => {
@@ -43,30 +47,58 @@ const Signup = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // New handleSignup: Send OTP first, then navigate to OTP Verification screen
-  const handleSignup = async () => {
-    if (!validateFields()) return;
-    setLoading(true);
-    try {
-      // Call the endpoint to send an OTP to the entered email
-      const response = await apiInstance.post('/email/sendOTP', { email });
-      if (response.data?.message) {
-        Alert.alert('OTP Sent', 'Please check your email for the OTP code.');
-        // Navigate to OTPVerification screen, passing the entered details
-        navigation.navigate('OTPVerification', { fullName, email, password });
-      } else {
-        throw new Error('Failed to send OTP.');
-      }
-    } catch (error) {
+// Enhanced handleSignup function
+const handleSignup = async () => {
+  if (!validateFields()) return;
+  setLoading(true);
+  
+  try {
+    // First check if this email is associated with Google
+    const checkResponse = await apiInstance.post('/checkEmailProvider', { email: email.trim() });
+    
+    if (checkResponse.data?.isGoogleAccount) {
       Alert.alert(
-        'Error',
-        error.response?.data?.error || error.message || 'Failed to send OTP. Please try again.'
+        'Google Account Detected',
+        `This email "${email.trim()}" is associated with Google.`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Sign In with Google',
+            onPress: () => {
+              navigation.navigate('Login', { 
+                triggerGoogleSignIn: true, 
+                email: email.trim(),
+                timestamp: new Date().getTime()
+              });
+            },
+          },
+        ]
       );
-    } finally {
       setLoading(false);
+      return;
     }
-  };
-
+    
+    // Continue with original OTP flow for non-Google accounts
+    const response = await apiInstance.post('/email/sendOTP', { email });
+    if (response.data?.message) {
+      Alert.alert('OTP Sent', 'Please check your email for the OTP code.');
+      // Navigate to OTPVerification screen, passing the entered details
+      navigation.navigate('OTPVerification', { fullName, email, password });
+    } else {
+      throw new Error('Failed to send OTP.');
+    }
+  } catch (error) {
+    Alert.alert(
+      'Error',
+      error.response?.data?.error || error.message || 'Failed to send OTP. Please try again.'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>SIGN UP</Text>
@@ -91,7 +123,7 @@ const Signup = () => {
         keyboardType="email-address"
       />
       {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-      <InputField
+      <PasswordField
         placeholder="Password"
         value={password}
         onChangeText={(text) => {
@@ -122,6 +154,7 @@ const Signup = () => {
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -179,4 +212,7 @@ const styles = StyleSheet.create({
   },
 });
 
+
 export default Signup;
+
+

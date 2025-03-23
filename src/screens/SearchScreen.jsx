@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   FlatList,
@@ -18,6 +17,8 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import searchIcon from '../icons/mySearch.png';
 import WhenModal from '../components/WhenModal';
 import WhoModel from '../components/WhoModel';
+import CategorySelector1 from '../components/CategorySelector1';
+import apiInstance from '../config/apiConfig'; // Use API instance instead of direct Firebase access
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +33,8 @@ function SearchScreen() {
   const [isWhoModalVisible, setIsWhoModalVisible] = useState(false);
   const [guestDetails, setGuestDetails] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(0);
+  const [city, setCity] = useState('');
+  const [cityCategories, setCityCategories] = useState([]);
 
   // Reset searchQuery whenever the screen is focused
   useFocusEffect(
@@ -39,6 +42,24 @@ function SearchScreen() {
       setSearchQuery('');
     }, [])
   );
+
+  // Fetch cities from the API endpoint instead of directly from Firebase
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        // Use the correct path to get cities
+        const response = await apiInstance.get('/search/cities');
+        
+        if (response.data && response.data.cities) {
+          setCityCategories(response.data.cities);
+        }
+      } catch (error) {
+        console.error('Error fetching cities:', error);
+      }
+    };
+
+    fetchCities();
+  }, []);
 
   // Listen for keyboard show/hide events
   useEffect(() => {
@@ -84,7 +105,8 @@ function SearchScreen() {
       selectedRegion,
       selectedDateRange,
       rawDateRange, // pass raw date range for backend filtering
-      guestDetails: guestDetails || { adults: 0, children: 0, infants: 0, pets: 0 },
+      guestDetails: guestDetails || { category: "", value: 0 },
+      city, // Pass the selected city to the search
     });
   };
 
@@ -109,17 +131,12 @@ function SearchScreen() {
           <View style={styles.groupContainer}>
             <Text style={styles.heading}>Where To?</Text>
 
-            <View style={styles.searchContainer}>
-              <Image source={searchIcon} style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search destinations"
-                placeholderTextColor="#888"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                cursorColor="gray" // Add this line right here
-              />
-            </View>
+            {/* City dropdown selector */}
+            <CategorySelector1
+              selectedCategory={city}
+              onSelectCategory={setCity}
+              categories={cityCategories}
+            />
 
             <FlatList
               data={regions}
@@ -185,6 +202,7 @@ function SearchScreen() {
                   setSelectedDateRange('Any week');
                   setRawDateRange(null);
                   setGuestDetails(null);
+                  setCity(''); // Reset city selection
                   // Increment the reset trigger to signal the modals to reset
                   setResetTrigger(prev => prev + 1);
                 }}
@@ -209,7 +227,7 @@ function SearchScreen() {
             isVisible={isWhenModalVisible}
             onClose={() => setIsWhenModalVisible(false)}
             onDateRangeChange={handleDateRangeChange}
-            resetTrigger={resetTrigger} 
+            resetTrigger={resetTrigger}
           />
 
           <WhoModel
@@ -217,7 +235,7 @@ function SearchScreen() {
             onClose={() => setIsWhoModalVisible(false)}
             initialData={guestDetails || { category: "", value: 0 }}
             onSave={(data) => setGuestDetails(data)}
-            resetTrigger={resetTrigger}  
+            resetTrigger={resetTrigger}    
           />
         </View>
       </TouchableWithoutFeedback>
@@ -226,7 +244,6 @@ function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  // (Keep your existing styles unchanged)
   container: {
     height: '100%',
     flexGrow: 1,

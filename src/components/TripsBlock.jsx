@@ -13,64 +13,79 @@ export default function TripsBlock({ activity, onEdit }) {
     endTime,
     price,
     guests,
-    host
+    host,
+    reviewEligibleTimestamp,
+    hasFeedback
   } = activity;
 
+  // Determine if the review option should be shown
+  const shouldShowReviewIcon = () => {
+    // Don't show if user has already submitted feedback
+    if (hasFeedback) return false;
+    
+    // Don't show if reviewEligibleTimestamp is not available
+    if (!reviewEligibleTimestamp) return false;
+    
+    // Show only if current time is past the eligible timestamp (24h after booking)
+    const currentTime = Date.now();
+    return currentTime >= reviewEligibleTimestamp;
+  };
+
   return (
-    <TouchableOpacity
-      style={styles.container}
-      activeOpacity={0.7}
-      // MAIN CHANGE: navigate to ActivityDetails with activityId
-      onPress={() => navigation.navigate('ActivityDetails', { activityId: activity.id })}
-    >
-      <View style={styles.leftSection}>
-        {/* If image is a string URL, wrap with { uri: image } */}
-        <Image
-          source={typeof image === 'string' ? { uri: image } : image}
-          style={styles.activityImage}
-        />
-      </View>
-      <View style={styles.contentContainer}>
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.detailRow}>
-          <Text style={styles.value}>{bookingDate}</Text>
-          <Text style={styles.separator}> | </Text>
+    <View style={styles.outerContainer}>
+      <View style={styles.container}>
+        <View style={styles.leftSection}>
+          <Image
+            source={typeof image === 'string' ? { uri: image } : image}
+            style={styles.activityImage}
+          />
+        </View>
+        <View style={styles.contentContainer}>
+          <Text style={styles.title}>{title}</Text>
           <View style={styles.detailRow}>
-            <Text style={styles.value}>{startTime}</Text>
-            <Text style={styles.separator}>-</Text>
-            <Text style={styles.value}>{endTime}</Text>
+            <Text style={styles.value}>{bookingDate}</Text>
+            <Text style={styles.separator}> | </Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.value}>{startTime}</Text>
+              <Text style={styles.separator}>-</Text>
+              <Text style={styles.value}>{endTime}</Text>
+            </View>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.value}>{price}</Text>
+            <Text style={styles.separator}> | </Text>
+            <Text style={styles.value}>{guests}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.value}>{host}</Text>
           </View>
         </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.value}>{price}</Text>
-          <Text style={styles.separator}> | </Text>
-          <Text style={styles.value}>{guests}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.value}>{host}</Text>
-        </View>
       </View>
-
-      {/* Edit Icon for e.g. AvailabilityScheduleDetails */}
-      <TouchableOpacity
-        style={styles.editIcon}
-        onPress={onEdit}
-        activeOpacity={0.7}
-      >
-        <Image
-          source={require('../images/review_icon.png')}
-          style={styles.editImage}
-        />
-      </TouchableOpacity>
-    </TouchableOpacity>
+      
+      {/* Conditional Feedback Button - Only show if eligible and not already reviewed */}
+      {shouldShowReviewIcon() && (
+        <TouchableOpacity
+          style={styles.feedbackButton}
+          onPress={() => navigation.navigate('FeedbackScreen', { activityId: activity.id })}
+          activeOpacity={0.7}
+        >
+          <View style={styles.feedbackContent}>
+            <Image
+              source={require('../icons/review_icon.png')}
+              style={styles.feedbackIcon}
+            />
+            <Text style={styles.feedbackText}>Share Your Experience!</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  outerContainer: {
     margin: 10,
+    marginTop: 17,
     backgroundColor: 'white',
     borderRadius: 15,
     elevation: 5,
@@ -78,8 +93,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    overflow: 'hidden',
+  },
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 12,
-    marginTop: 17,
+    paddingTop: 18,
+    paddingBottom: 18,
   },
   leftSection: {
     alignItems: 'center',
@@ -120,13 +141,26 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#000',
   },
-  editIcon: {
-    marginLeft: -20,
-    marginTop: 94,
+  feedbackButton: {
+    backgroundColor: '#F0F0F0',
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
-  editImage: {
-    width: 32,
-    height: 32,
+  feedbackContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackIcon: {
+    width: 24,
+    height: 24,
     resizeMode: 'contain',
+    marginRight: 10,
+  },
+  feedbackText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF5A5F',
   },
 });

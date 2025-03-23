@@ -10,7 +10,6 @@ import {
   Alert
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import DateRangePicker from "../components/DateRangePicker2";
 import CategorySelector from '../components/CategorySelector';
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -120,9 +119,9 @@ const ConfirmAndPay = () => {
           Alert.alert(
             "Error",
             err.response?.data?.error ||
-              err.response?.data?.message ||
-              err.message ||
-              "Failed to load activity data."
+            err.response?.data?.message ||
+            err.message ||
+            "Failed to load activity data."
           );
         }
         setError(err.message);
@@ -173,9 +172,9 @@ const ConfirmAndPay = () => {
           Alert.alert(
             "Error",
             err.response?.data?.error ||
-              err.response?.data?.message ||
-              err.message ||
-              "Failed to retrieve available slots"
+            err.response?.data?.message ||
+            err.message ||
+            "Failed to retrieve available slots"
           );
         }
       } finally {
@@ -268,13 +267,13 @@ const ConfirmAndPay = () => {
       const payload = { date: dateString, slotId: timeSlot, requestedGuests: guestCount, userId };
       console.log("[ConfirmAndPay] Initiating payment...");
       setLoading(true);
-
+  
       const paymentResponse = await apiInstance.post(`/createPaymentIntent/${activityId}`, payload);
       if (!paymentResponse.data.success) {
         throw new Error(paymentResponse.data.message);
       }
       const { paymentIntentId, clientSecret } = paymentResponse.data;
-
+  
       const { error: initError } = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: "Tourist Guide App",
@@ -303,24 +302,27 @@ const ConfirmAndPay = () => {
         throw new Error(paymentError.message);
       }
       console.log("[ConfirmAndPay] Payment successful. Finalizing booking...");
+  
+      // Add payment intent ID to the payload for the booking
       payload.paymentIntentId = paymentIntentId;
+  
+      // First create the booking
       const bookingResponse = await apiInstance.post(`/bookTimeSlot/${activityId}`, payload);
+  
       if (bookingResponse.data.success) {
-        Alert.alert("Success", "Booking successful!", [
-          {
-            text: "OK",
-            onPress: () => navigation.navigate('ActivityDetails', { activityId })
-          }
-        ]);
+        console.log("[ConfirmAndPay] Booking completed successfully");
+        
+        // Navigate to BookingConfirmed screen directly without showing alert
+        navigation.navigate('BookingConfirmed');
+        // We don't set loading to false here since we're navigating away
       } else {
-        Alert.alert("Booking Error", bookingResponse.data.message);
+        throw new Error(bookingResponse.data.message || "Failed to complete booking");
       }
-
+  
     } catch (error) {
       console.error("[ConfirmAndPay] Error:", error);
       Alert.alert("Error", error.message || "Something went wrong.");
-    } finally {
-      setLoading(false);
+      setLoading(false); // Only set loading to false on error
     }
   };
 
@@ -382,6 +384,7 @@ const ConfirmAndPay = () => {
           onDateRangeChange={setDateRange}
           minAllowedDate={activityData.dateRange?.startDate}
           maxAllowedDate={activityData.dateRange?.endDate}
+          activityId={activityId}  // Pass the activityId prop
         />
       </View>
 
