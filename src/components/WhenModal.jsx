@@ -10,17 +10,21 @@ import {
 } from 'react-native';
 import CalendarPicker from 'react-native-calendar-picker';
 
+
 const { width, height } = Dimensions.get('window');
+
 
 const WhenModal = ({ isVisible, onClose, onDateRangeChange, resetTrigger }) => {
   const [selectedStartDate, setSelectedStartDate] = useState(null);
   const [selectedEndDate, setSelectedEndDate] = useState(null);
   const today = new Date();
 
+
   useEffect(() => {
     setSelectedStartDate(null);
     setSelectedEndDate(null);
   }, [resetTrigger]);
+
 
   const handleDateChange = (date) => {
     if (!selectedStartDate) {
@@ -33,6 +37,7 @@ const WhenModal = ({ isVisible, onClose, onDateRangeChange, resetTrigger }) => {
     }
   };
 
+
   const handleClose = () => {
     onDateRangeChange({
       startDate: selectedStartDate,
@@ -41,10 +46,12 @@ const WhenModal = ({ isVisible, onClose, onDateRangeChange, resetTrigger }) => {
     onClose();
   };
 
+
   const formatDate = (date) => {
     if (!date) return '';
     return `${date.toString().split(' ')[1]} ${date.getDate()}, ${date.getFullYear()}`;
   };
+
 
   const customDatesStyles = [];
   if (selectedStartDate && !selectedEndDate) {
@@ -54,6 +61,7 @@ const WhenModal = ({ isVisible, onClose, onDateRangeChange, resetTrigger }) => {
       textStyle: { color: '#fff' },
     });
   }
+
 
   return (
     <Modal
@@ -94,6 +102,8 @@ const WhenModal = ({ isVisible, onClose, onDateRangeChange, resetTrigger }) => {
                   selectedRangeStyle={styles.rangeStyle}
                   customDatesStyles={customDatesStyles}
                   style={styles.calendar}
+                  previousTitle="<" // Custom text for the previous button
+                  nextTitle=">"     // Custom text for the next button
                 />
               </View>
             </View>
@@ -103,6 +113,7 @@ const WhenModal = ({ isVisible, onClose, onDateRangeChange, resetTrigger }) => {
     </Modal>
   );
 };
+
 
 export default WhenModal;
 

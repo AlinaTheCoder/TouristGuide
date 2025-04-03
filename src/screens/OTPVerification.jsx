@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-
+import { useToast } from '../../App'
 
 // NEW IMPORTS FOR GOOGLE SIGN-IN
 import auth from '@react-native-firebase/auth';
@@ -29,7 +29,7 @@ import apiInstance from '../config/apiConfig';
 const OTPVerification = ({ route, navigation }) => {
   // Retrieve the user details passed from the Signup screen
   const { fullName, email, password } = route.params;
-
+  const toast = useToast();
 
   // ------------------- States -------------------
   const [otp, setOtp] = useState(['', '', '', '']);
@@ -97,7 +97,8 @@ const OTPVerification = ({ route, navigation }) => {
     try {
       const resendResponse = await apiInstance.post('/email/sendOTP', { email });
       if (resendResponse.data?.message) {
-        Alert.alert('OTP Sent', 'A new OTP has been sent to your email.');
+        // Alert.alert('OTP Sent', 'A new OTP has been sent to your email.');
+        toast.showSuccess('A new OTP has been sent to your email!');
       } else {
         throw new Error('Failed to resend OTP.');
       }
@@ -140,7 +141,8 @@ const OTPVerification = ({ route, navigation }) => {
           password: password,
         });
         if (signupResponse.data?.user?.uid) {
-          Alert.alert('Success', 'Signup successful!');
+          // Alert.alert('Success', 'Signup successful!');
+          toast.showSuccess('Signup successful!');
           navigation.navigate('Login');
         } else {
           throw new Error('Invalid response from server during signup.');

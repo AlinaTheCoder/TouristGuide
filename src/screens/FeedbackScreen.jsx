@@ -228,7 +228,6 @@ const FeedbackScreen = () => {
                   {wordCount}/{MAX_WORDS} words
                 </Text>
               </View>
-
               {/* Submit Button */}
               <TouchableOpacity
                 style={[
@@ -355,4 +354,3 @@ const styles = StyleSheet.create({
 
 
 export default FeedbackScreen;
-

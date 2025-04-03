@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -127,16 +126,6 @@ export default function Listings1() {
     });
   };
 
-  // Loading
-  if (loading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#FF5A5F" />
-        <Text style={styles.loadingText}>Loading Listings...</Text>
-      </View>
-    );
-  }
-
   // No listings
   if (!loading && listings.length === 0) {
     return <NoListing />;
@@ -209,16 +198,5 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     resizeMode: 'contain',
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#FF5A5F',
-  },
+  }
 });

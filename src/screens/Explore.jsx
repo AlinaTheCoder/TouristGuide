@@ -1,6 +1,6 @@
 // Explore.jsx
 import React, { useEffect, useState, useContext, useCallback } from 'react';
-import { ScrollView, View, ActivityIndicator, Alert, StyleSheet, Text } from 'react-native';
+import { ScrollView, View, Alert, StyleSheet, Text } from 'react-native';
 import TopSection from '../components/TopSection';
 import PostSection from '../components/PostSection';
 import SearchScreen from './SearchScreen';
@@ -60,8 +60,8 @@ const Explore = () => {
         Alert.alert(
           'Error',
           err.response.data?.message ||
-            err.message ||
-            'Failed to fetch activities. Please try again later.'
+          err.message ||
+          'Failed to fetch activities. Please try again later.'
         );
       }
     } finally {
@@ -127,7 +127,7 @@ const Explore = () => {
     }
     const getMonthAbbreviation = (isoDate) => {
       const monthNames = [
-        'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
       ];
       const dateObj = new Date(isoDate);
       return `${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}`;
@@ -144,7 +144,7 @@ const Explore = () => {
   useFocusEffect(
     useCallback(() => {
       loadWishlist();
-      return () => {};
+      return () => { };
     }, [loadWishlist])
   );
 
@@ -155,15 +155,6 @@ const Explore = () => {
   };
 
   // ------------------- Render -------------------
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF5A5F" />
-        <Text style={styles.loadingText}>Loading Activities...</Text>
-      </View>
-    );
-  }
-
   return (
     <ScrollView style={styles.container} showsHorizontalScrollIndicator={false}>
       <TopSection
@@ -173,7 +164,7 @@ const Explore = () => {
         onCategorySelect={handleCategorySelect}
       />
 
-      {activities.length === 0 ? (
+      {!loading && activities.length === 0 ? (
         <NoExploreActivity />
       ) : (
         <View style={styles.container1}>
@@ -184,7 +175,10 @@ const Explore = () => {
               PostImages={activity.PostImages}
               PostCaption={activity.PostCaption}
               PostDate={activity.PostDate}
-              onPress={() => navigation.navigate('ActivityDetails', { activityId: activity.id })}
+              onPress={() => navigation.navigate('ActivityDetails', {
+                activityId: activity.id,
+                from: 'Explore'  // Add this line
+              })}
             />
           ))}
         </View>
@@ -197,16 +191,5 @@ export default Explore;
 
 const styles = StyleSheet.create({
   container: { backgroundColor: 'white' },
-  container1: { marginBottom: 90 },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#FF5A5F',
-  },
+  container1: { marginBottom: 90 }
 });

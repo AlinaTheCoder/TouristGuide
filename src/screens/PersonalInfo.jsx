@@ -13,7 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiInstance from '../config/apiConfig';
-
+import { useToast } from '../../App'
 
 const PersonalInfo = () => {
   const [uid, setUid] = useState('');
@@ -25,7 +25,7 @@ const PersonalInfo = () => {
   const [tempValue, setTempValue] = useState('');
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [isGoogleUser, setIsGoogleUser] = useState(false);
-
+  const toast = useToast();
 
   const navigation = useNavigation();
 
@@ -85,7 +85,8 @@ const PersonalInfo = () => {
       const response = await apiInstance.put(`/users/EditName/${uid}`, { name: newName });
       if (response.status === 200) {
         setFullName(newName);
-        Alert.alert('Success', 'Name updated successfully!');
+        // Alert.alert('Success', 'Name updated successfully!');
+        toast.showSuccess('Name updated successfully!');
       }
     } catch (error) {
       console.error('Error updating name:', error);
@@ -115,7 +116,8 @@ const PersonalInfo = () => {
       const response = await apiInstance.put('/users/ChangePassword', { uid, newPassword });
       if (response.status === 200) {
         setPassword(newPassword);
-        Alert.alert('Success', 'Password changed successfully!');
+        // Alert.alert('Success', 'Password changed successfully!');
+        toast.showSuccess('Password changed successfully!');
       }
     } catch (error) {
       console.error('Error changing password:', error);

@@ -16,10 +16,12 @@ import InputFieldHostFormAge from '../components/InputFieldHostFormAge';
 import ScheduleCustomButton from '../components/ScheduleCustomButton';
 import CategorySelector from '../components/CategorySelector';
 import apiInstance from '../config/apiConfig';
+import { useToast } from '../../App'
 
 export default function AvailabilityScheduleDetails() {
   const navigation = useNavigation();
   const route = useRoute();
+  const toast = useToast();
   const { activity } = route.params || {};
 
   // Preload date range from activity.dateRange
@@ -102,110 +104,137 @@ export default function AvailabilityScheduleDetails() {
       ? 3
       : null) !== selectedOption);
 
-  // "Save" button handler
-  const handleSave = async () => {
-    console.log('[DEBUG - handleSave] Activity ID =', activity?.activityId);
-    console.log('[DEBUG - handleSave] Current selectedDateRange =', selectedDateRange);
+// "Save" button handler
+const handleSave = async () => {
+  console.log('[DEBUG - handleSave] Activity ID =', activity?.activityId);
+  console.log('[DEBUG - handleSave] Current selectedDateRange =', selectedDateRange);
 
-    // Ensure numeric values are valid
-    const guestsPerDayNumber = parseInt(maxGuestsPerDay, 10);
-    const guestsPerTimeNumber = parseInt(maxGuestsPerTime, 10);
-    if (isNaN(guestsPerDayNumber) || isNaN(guestsPerTimeNumber)) {
+  // Ensure numeric values are valid
+  const guestsPerDayNumber = parseInt(maxGuestsPerDay, 10);
+  const guestsPerTimeNumber = parseInt(maxGuestsPerTime, 10);
+  if (isNaN(guestsPerDayNumber) || isNaN(guestsPerTimeNumber)) {
+    Alert.alert(
+      'Error',
+      'Please enter valid numeric values for guests per day and guests per time.'
+    );
+    return;
+  }
+  if (guestsPerTimeNumber >= guestsPerDayNumber) {
+    Alert.alert('Error', 'Guests per time should be less than guests per day.');
+    return;
+  }
+
+  let listingStatusText = '';
+  switch (selectedOption) {
+    case 1:
+      listingStatusText = 'List';
+      break;
+    case 2:
+      listingStatusText = 'Unlist';
+      break;
+    case 3:
+      listingStatusText = 'Deactivate';
+      break;
+    default:
+      listingStatusText = '';
+  }
+
+  // Add confirmation for Deactivate option
+  if (selectedOption === 3) {
+    Alert.alert(
+      'Confirm Deactivation',
+      'Deactivating this activity will permanently delete it. Are you sure you want to deactivate?',
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Deactivation cancelled'),
+          style: 'cancel',
+        },
+        {
+          text: 'Yes, Deactivate',
+          onPress: () => proceedWithSave(listingStatusText),
+        },
+      ],
+      { cancelable: false }
+    );
+  } else {
+    // For List and Unlist options, proceed without confirmation
+    proceedWithSave(listingStatusText);
+  }
+};
+
+// Create a helper function to handle the actual save logic
+const proceedWithSave = async (listingStatusText) => {
+  try {
+    if (!activity?.activityId) {
+      Alert.alert('Error', 'Activity ID not found.');
+      return;
+    }
+
+    const dataToUpdate = {
+      dateRange: {
+        startDate: selectedDateRange.startDate,
+        endDate: selectedDateRange.endDate,
+      },
+      startTime: selectedStartTime || '',
+      endTime: selectedEndTime || '',
+      duration: duration || '',
+      maxGuestsPerDay,
+      maxGuestsPerTime,
+      pricePerGuest,
+      estimatedEarnings,
+      listingStatus: listingStatusText,
+      address,
+      city,
+    };
+
+    console.log('[DEBUG - handleSave] Data to update =>', dataToUpdate);
+
+    // Send to backend
+    const res = await apiInstance.put(`/schedule/${activity.activityId}`, dataToUpdate);
+    console.log('[DEBUG - handleSave] Update response =>', res.data);
+
+    // Navigate back with updated data
+    navigation.navigate('HostTabs', {
+      screen: 'Schedule',
+      params: {
+        updatedActivity: {
+          ...activity,
+          ...dataToUpdate,
+          listingStatus: listingStatusText,
+        },
+      },
+    });
+
+    // Alert.alert('Success', 'Activity schedule updated successfully!', [
+    //   {
+    //     text: 'OK',
+    //     onPress: () => {
+    //       // Optionally do more
+    //     },
+    //   },
+    // ]);
+    toast.showSuccess('Activity schedule updated successfully!');
+  } catch (error) {
+    console.error('[ERROR - handleSave]', error.message);
+
+    // --- Distinguish network vs. server error ---
+    if (!error.response) {
+      Alert.alert(
+        'Network Error',
+        'Unable to reach the server. Please check your internet connection and try again.'
+      );
+    } else {
       Alert.alert(
         'Error',
-        'Please enter valid numeric values for guests per day and guests per time.'
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message ||
+          'Failed to update activity. Please try again.'
       );
-      return;
     }
-    if (guestsPerTimeNumber >= guestsPerDayNumber) {
-      Alert.alert('Error', 'Guests per time should be less than guests per day.');
-      return;
-    }
-
-    let listingStatusText = '';
-    switch (selectedOption) {
-      case 1:
-        listingStatusText = 'List';
-        break;
-      case 2:
-        listingStatusText = 'Unlist';
-        break;
-      case 3:
-        listingStatusText = 'Deactivate';
-        break;
-      default:
-        listingStatusText = '';
-    }
-
-    try {
-      if (!activity?.activityId) {
-        Alert.alert('Error', 'Activity ID not found.');
-        return;
-      }
-
-      const dataToUpdate = {
-        dateRange: {
-          startDate: selectedDateRange.startDate,
-          endDate: selectedDateRange.endDate,
-        },
-        startTime: selectedStartTime || '',
-        endTime: selectedEndTime || '',
-        duration: duration || '',
-        maxGuestsPerDay,
-        maxGuestsPerTime,
-        pricePerGuest,
-        estimatedEarnings,
-        listingStatus: listingStatusText,
-        address,
-        city,
-      };
-
-      console.log('[DEBUG - handleSave] Data to update =>', dataToUpdate);
-
-      // Send to backend
-      const res = await apiInstance.put(`/schedule/${activity.activityId}`, dataToUpdate);
-      console.log('[DEBUG - handleSave] Update response =>', res.data);
-
-      // Navigate back with updated data
-      navigation.navigate('HostTabs', {
-        screen: 'Schedule',
-        params: {
-          updatedActivity: {
-            ...activity,
-            ...dataToUpdate,
-            listingStatus: listingStatusText,
-          },
-        },
-      });
-
-      Alert.alert('Success', 'Activity schedule updated successfully!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Optionally do more
-          },
-        },
-      ]);
-    } catch (error) {
-      console.error('[ERROR - handleSave]', error.message);
-
-      // --- Distinguish network vs. server error ---
-      if (!error.response) {
-        Alert.alert(
-          'Network Error',
-          'Unable to reach the server. Please check your internet connection and try again.'
-        );
-      } else {
-        Alert.alert(
-          'Error',
-          error.response?.data?.error ||
-            error.response?.data?.message ||
-            error.message ||
-            'Failed to update activity. Please try again.'
-        );
-      }
-    }
-  };
+  }
+};
 
   return (
     <ScrollView>

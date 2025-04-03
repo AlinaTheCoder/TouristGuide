@@ -49,7 +49,7 @@ function SearchScreen() {
       try {
         // Use the correct path to get cities
         const response = await apiInstance.get('/search/cities');
-        
+
         if (response.data && response.data.cities) {
           setCityCategories(response.data.cities);
         }
@@ -120,7 +120,7 @@ function SearchScreen() {
         <View style={styles.container}>
           <TouchableOpacity
             style={styles.crossButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('UserTabs', { screen: 'Explore' })}
           >
             <View style={styles.crossIconWrapper}>
               <View style={[styles.line, styles.diagonalLeft]} />
@@ -235,7 +235,7 @@ function SearchScreen() {
             onClose={() => setIsWhoModalVisible(false)}
             initialData={guestDetails || { category: "", value: 0 }}
             onSave={(data) => setGuestDetails(data)}
-            resetTrigger={resetTrigger}    
+            resetTrigger={resetTrigger}
           />
         </View>
       </TouchableWithoutFeedback>

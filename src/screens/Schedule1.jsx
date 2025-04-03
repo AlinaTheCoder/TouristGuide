@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, View, Text, FlatList, Alert } from 'react-native';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiInstance from '../config/apiConfig';
@@ -44,6 +44,7 @@ function mapActivityToUI(activity) {
     endDate: formatDate(activity?.dateRange?.endDate),
     startTime: formatTime(activity?.startTime),
     endTime: formatTime(activity?.endTime),
+    listingStatus: activity.listingStatus,
     // Keep raw activity if you need it:
     original: activity,
   };
@@ -129,16 +130,6 @@ export default function Schedule1() {
     <ScheduleAvailability activity={item} onEdit={() => handleEdit(item)} />
   );
 
-  // Loading State
-  if (loading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#FF5A5F" />
-        <Text style={styles.loadingText}>Loading Schedule...</Text>
-      </View>
-    );
-  }
-
   // No activities
   if (!loading && activities.length === 0) {
     return <NoSchedule />;
@@ -165,12 +156,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     flex: 1,
   },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
   errorText: {
     color: 'red',
     margin: 20,
@@ -190,10 +175,5 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 100,
     paddingHorizontal: 12,
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#FF5A5F',
-  },
+  }
 });

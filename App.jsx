@@ -1,6 +1,6 @@
 // App.jsx
-import React, { useState, useEffect, useRef } from 'react';
-import { Alert, StyleSheet, View, Text } from 'react-native';
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { Alert, StyleSheet, View, Text, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StripeProvider } from '@stripe/stripe-react-native';
@@ -8,8 +8,9 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import NetInfo from '@react-native-community/netinfo';
 import OfflineFallback from './src/components/OfflineFallback ';
-import { initializeNotifications } from './src/utils/notificationService';
 
+// Import your app icon
+import appIcon from './src/icons/app_icon.png'; // Make sure this path is correct
 
 // Import your screen components
 import ActivityInformationScreen from './src/screens/ActivityInformationScreen';
@@ -40,65 +41,107 @@ import { WishlistProvider } from './src/contexts/WishlistContext';
 import FeedbackScreen from './src/screens/FeedbackScreen';
 import BookingConfirmed from './src/screens/BookingConfirmed';
 
-
-
 const Stack = createNativeStackNavigator();
 
+// Create toast context
+const ToastContext = createContext({
+  showSuccess: () => {},
+});
 
-// A simple Toast component to display minimalistic messages
-const Toast = ({ message }) => (
-  <View style={toastStyles.container}>
-    <Text style={toastStyles.text}>{message}</Text>
-  </View>
-);
+// Enhanced Toast component with type support
+const Toast = ({ message, type = 'default' }) => {
+  // Show icon only for success type
+  const showIcon = type === 'success';
+  
+  return (
+    <View style={toastStyles.container}>
+      {showIcon && <Image source={appIcon} style={toastStyles.icon} />}
+      <Text style={toastStyles.text}>{message}</Text>
+    </View>
+  );
+};
 
-
+// Toast styles - updated to support icon and match your requirements
 const toastStyles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 50,
-    left: '10%',
-    right: '10%',
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    bottom: 40, 
+    left: '25%',
+    right: '25%',
+    backgroundColor: '#FFFFFF', 
     padding: 10,
     borderRadius: 5,
+    flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 999, // Ensure it's above other components
+    justifyContent: 'center',
+    zIndex: 999,
+    borderWidth: 1, // Added border width
+    borderColor: '#000000', // Added black border
+  },
+  icon: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
   },
   text: {
-    color: '#fff',
+    color: '#000000',
     fontSize: 14,
   },
 });
 
+// Toast global reference for non-component access
+let toastGlobalRef = {
+  showSuccess: () => {},
+};
+
+export const showSuccessToast = (message) => {
+  toastGlobalRef.showSuccess(message);
+};
+
+// Toast Provider component
+export const ToastProvider = ({ children }) => {
+  const [toastConfig, setToastConfig] = useState({
+    message: '',
+    type: 'default',
+    visible: false,
+  });
+
+  // Method to show toast of any type
+  const showToast = (message, type, duration = 3000) => {
+    setToastConfig({ message, type, visible: true });
+    
+    // Auto hide after duration
+    setTimeout(() => {
+      setToastConfig(prev => ({ ...prev, visible: false }));
+    }, duration);
+  };
+
+  // Method specifically for success toasts
+  const showSuccess = (message) => {
+    showToast(message, 'success');
+  };
+
+  // Set the global reference
+  useEffect(() => {
+    toastGlobalRef = { showSuccess };
+  }, []);
+
+  return (
+    <ToastContext.Provider value={{ showSuccess }}>
+      {children}
+      {toastConfig.visible && <Toast message={toastConfig.message} type={toastConfig.type} />}
+    </ToastContext.Provider>
+  );
+};
+
+// Hook for component usage
+export const useToast = () => useContext(ToastContext);
 
 export default function App() {
   const [isOffline, setIsOffline] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const navigationRef = useRef(null);
  
-  // Add this navigation helper function
-  const navigate = (name, params) => {
-    if (navigationRef.current) {
-      navigationRef.current.navigate(name, params);
-    } else {
-      // Retry navigation if navigator isn't ready yet
-      setTimeout(() => {
-        if (navigationRef.current) {
-          navigationRef.current.navigate(name, params);
-        } else {
-          // One more retry with longer delay
-          setTimeout(() => {
-            if (navigationRef.current) {
-              navigationRef.current.navigate(name, params);
-            }
-          }, 3000);
-        }
-      }, 1000); // Initial delay to allow navigation to initialize
-    }
-  };
-
-
   // Monitor network connectivity
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -108,7 +151,6 @@ export default function App() {
       unsubscribe();
     };
   }, []);
-
 
   // Retry function for OfflineFallback's "Retry" button
   const handleRetry = () => {
@@ -127,7 +169,6 @@ export default function App() {
     });
   };
 
-
   // Configure Google Sign-In
   useEffect(() => {
     const configureGoogleSignIn = async () => {
@@ -137,13 +178,11 @@ export default function App() {
           showPlayServicesUpdateDialog: true,
         });
 
-
         // Configure Google Sign-In with correct web client ID
         GoogleSignin.configure({
           webClientId: '742417803218-r9sqso76qti6iqdkhsgfpj976408105o.apps.googleusercontent.com',
           offlineAccess: false,
         });
-
 
         if (__DEV__) {
           console.log('Google Sign-In configured successfully');
@@ -153,9 +192,7 @@ export default function App() {
       }
     };
 
-
     configureGoogleSignIn();
-
 
     // Global error handler
     const globalErrorHandler = (error, isFatal) => {
@@ -167,150 +204,110 @@ export default function App() {
       );
     };
 
-
     if (ErrorUtils && ErrorUtils.setGlobalHandler) {
       ErrorUtils.setGlobalHandler(globalErrorHandler);
     }
   }, []);
  
-  // Initialize notifications
-  useEffect(() => {
-    const setupNotifications = async () => {
-      try {
-        // Handle notification opened (navigation logic)
-        const handleNotificationOpen = (remoteMessage) => {
-          if (!remoteMessage) return;
-         
-          console.log('Notification opened:', remoteMessage);
-         
-          // Handle navigation based on notification type
-          if (remoteMessage.data?.type === 'FEEDBACK_REMINDER') {
-            const activityId = remoteMessage.data.activityId;
-           
-            if (activityId) {
-              // Use the navigate helper instead of direct navigation
-              navigate('FeedbackScreen', { activityId });
-            }
-          }
-        };
-       
-        // Initialize notifications and store unsubscribe function
-        const unsubscribe = await initializeNotifications(handleNotificationOpen);
-       
-        // Clean up on unmount
-        return () => {
-          if (unsubscribe) {
-            unsubscribe();
-          }
-        };
-      } catch (error) {
-        console.error('Error setting up notifications:', error);
-      }
-    };
-   
-    setupNotifications();
-  }, []); // Empty dependency array to run once on mount
-
-
-
-
   return (
-    <StripeProvider
-      publishableKey="pk_test_51QJngRAXKqdW343ZTbqZbwyg0a7oCTH1HEJKLsWOoodI7YYwjKfiUGfX5zX0lo10Y0sCl2oD8WS37K47jvfw863I007Uhcolkg"
-      merchantIdentifier="merchant.com.yourapp"
-    >
-      <WishlistProvider>
-        <ErrorBoundary>
-          {isOffline ? (
-            <OfflineFallback onRetry={handleRetry} />
-          ) : (
-            <NavigationContainer ref={navigationRef}>
-              <Stack.Navigator
-                initialRouteName="AuthLoading"
-                screenOptions={{ headerShown: false }}
-              >
-                <Stack.Screen name="AuthLoading" component={AuthLoading} />
-                <Stack.Screen
-                  name="ActivityInformationScreen"
-                  component={ActivityInformationScreen}
-                />
-                <Stack.Screen
-                  name="LocationInformationScreen"
-                  component={LocationInformationScreen}
-                />
-                <Stack.Screen
-                  name="ScheduleInformationScreen"
-                  component={ScheduleInformationScreen}
-                />
-                <Stack.Screen
-                  name="ParticipantsInformationScreen"
-                  component={ParticipantsInformationScreen}
-                />
-                <Stack.Screen
-                  name="PriceInformationScreen"
-                  component={PriceInformationScreen}
-                />
-                <Stack.Screen
-                  name="ImagesInformationScreen"
-                  component={ImagesInformationScreen}
-                />
-                <Stack.Screen
-                  name="HostInformationScreen"
-                  component={HostInformationScreen}
-                />
-                <Stack.Screen name="UserTabs" component={UserTabs} />
-                <Stack.Screen name="AfterSearch" component={AfterSearch} />
-                <Stack.Screen name="Earnings" component={Earnings} />
-                <Stack.Screen
-                  name="AvailabilityScheduleDetails"
-                  component={AvailabilityScheduleDetails}
-                />
-                <Stack.Screen
-                  name="ActivityDetails"
-                  component={ActivityDetails}
-                />
-                <Stack.Screen
-                  name="OTPVerification"
-                  component={OTPVerification}
-                />
-                <Stack.Screen
-                  name="HostActivityDetails"
-                  component={HostActivityDetails}
-                />
-                <Stack.Screen
-                  name="ConfirmAndPay"
-                  component={ConfirmAndPay}
-                />
-                <Stack.Screen name="Login" component={Login} />
-                <Stack.Screen name="Signup" component={Signup} />
-                <Stack.Screen name="FeedbackScreen" component={FeedbackScreen} />
-                <Stack.Screen name="PersonalInfo" component={PersonalInfo} />
-                <Stack.Screen name="HostTabs" component={HostTabs} />
-                <Stack.Screen
-                  name="HostPersonalInfo"
-                  component={HostPersonalInfo}
-                />
-                <Stack.Screen name="SearchScreen" component={SearchScreen} />
-                <Stack.Screen
-                  name="FinishHostFormScreen"
-                  component={FinishHostFormScreen}
-                />
-                <Stack.Screen
-                  name="CertificateViewer"
-                  component={CertificateViewer}
-                  options={{ headerShown: true, title: 'Certificate' }}
-                />
-                <Stack.Screen
-                  name="BookingConfirmed"
-                  component={BookingConfirmed}
-                />
-              </Stack.Navigator>
-            </NavigationContainer>
-          )}
-          {/* Render Toast message overlay if needed */}
-          {toastMessage !== '' && <Toast message={toastMessage} />}
-        </ErrorBoundary>
-      </WishlistProvider>
-    </StripeProvider>
+    <ToastProvider>
+      <StripeProvider
+        publishableKey="pk_test_51R9lRbPYsnzTI5wKmo2Og7zpR57NoPtDgXMxLl3FZIJFpY6f9fl2Irwc7FJ1VxtK24Jy1bqVIjwA8ZNSXwrOxhjY00J6Fy9xbW"
+        merchantIdentifier="merchant.com.yourapp"
+      >
+        <WishlistProvider>
+          <ErrorBoundary>
+            {isOffline ? (
+              <OfflineFallback onRetry={handleRetry} />
+            ) : (
+              <NavigationContainer>
+                <Stack.Navigator
+                  initialRouteName="AuthLoading"
+                  screenOptions={{ headerShown: false }}
+                >
+                  <Stack.Screen name="AuthLoading" component={AuthLoading} />
+                  <Stack.Screen
+                    name="ActivityInformationScreen"
+                    component={ActivityInformationScreen}
+                  />
+                  <Stack.Screen
+                    name="LocationInformationScreen"
+                    component={LocationInformationScreen}
+                  />
+                  <Stack.Screen
+                    name="ScheduleInformationScreen"
+                    component={ScheduleInformationScreen}
+                  />
+                  <Stack.Screen
+                    name="ParticipantsInformationScreen"
+                    component={ParticipantsInformationScreen}
+                  />
+                  <Stack.Screen
+                    name="PriceInformationScreen"
+                    component={PriceInformationScreen}
+                  />
+                  <Stack.Screen
+                    name="ImagesInformationScreen"
+                    component={ImagesInformationScreen}
+                  />
+                  <Stack.Screen
+                    name="HostInformationScreen"
+                    component={HostInformationScreen}
+                  />
+                  <Stack.Screen name="UserTabs" component={UserTabs} />
+                  <Stack.Screen name="AfterSearch" component={AfterSearch} />
+                  <Stack.Screen name="Earnings" component={Earnings} />
+                  <Stack.Screen
+                    name="AvailabilityScheduleDetails"
+                    component={AvailabilityScheduleDetails}
+                  />
+                  <Stack.Screen
+                    name="ActivityDetails"
+                    component={ActivityDetails}
+                  />
+                  <Stack.Screen
+                    name="OTPVerification"
+                    component={OTPVerification}
+                  />
+                  <Stack.Screen
+                    name="HostActivityDetails"
+                    component={HostActivityDetails}
+                  />
+                  <Stack.Screen
+                    name="ConfirmAndPay"
+                    component={ConfirmAndPay}
+                  />
+                  <Stack.Screen name="Login" component={Login} />
+                  <Stack.Screen name="Signup" component={Signup} />
+                  <Stack.Screen name="FeedbackScreen" component={FeedbackScreen} />
+                  <Stack.Screen name="PersonalInfo" component={PersonalInfo} />
+                  <Stack.Screen name="HostTabs" component={HostTabs} />
+                  <Stack.Screen
+                    name="HostPersonalInfo"
+                    component={HostPersonalInfo}
+                  />
+                  <Stack.Screen name="SearchScreen" component={SearchScreen} />
+                  <Stack.Screen
+                    name="FinishHostFormScreen"
+                    component={FinishHostFormScreen}
+                  />
+                  <Stack.Screen
+                    name="CertificateViewer"
+                    component={CertificateViewer}
+                    options={{ headerShown: true, title: 'Certificate' }}
+                  />
+                  <Stack.Screen
+                    name="BookingConfirmed"
+                    component={BookingConfirmed}
+                  />
+                </Stack.Navigator>
+              </NavigationContainer>
+            )}
+            {/* Render original toast message overlay if needed */}
+            {toastMessage !== '' && <Toast message={toastMessage} />}
+          </ErrorBoundary>
+        </WishlistProvider>
+      </StripeProvider>
+    </ToastProvider>
   );
 }

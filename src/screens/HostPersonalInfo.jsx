@@ -14,6 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiInstance from '../config/apiConfig';
+import { useToast, showSuccessToast } from '../../App'
 
 
 const HostPersonalInfo = () => {
@@ -28,6 +29,7 @@ const HostPersonalInfo = () => {
   const [tempValue, setTempValue] = useState('');
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [isGoogleUser, setIsGoogleUser] = useState(false);
+  const toast = useToast();
 
 
   const navigation = useNavigation();
@@ -87,7 +89,8 @@ const HostPersonalInfo = () => {
       const response = await apiInstance.put(`/users/EditName/${uid}`, { name: newName });
       if (response.status === 200) {
         setFullName(newName);
-        Alert.alert('Success', 'Name updated successfully!');
+        // Alert.alert('Success', 'Name updated successfully!');
+        toast.showSuccess('Name updated successfully!');
       }
     } catch (error) {
       console.error('Error updating name:', error);
@@ -116,7 +119,8 @@ const HostPersonalInfo = () => {
       const response = await apiInstance.put('/users/ChangePassword', { uid, newPassword });
       if (response.status === 200) {
         setPassword(newPassword);
-        Alert.alert('Success', 'Password changed successfully!');
+        toast.showSuccess('Password changed successfully!');
+        // Alert.alert('Success', 'Password changed successfully!');
       }
     } catch (error) {
       console.error('Error changing password:', error);
@@ -212,7 +216,7 @@ const renderEditableRow = (label, value, field, buttonText) => (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('HostTabs', { screen: 'UserProfile' })}
+          onPress={() => navigation.navigate('HostTabs', { screen: 'HostProfile' })}
           style={styles.backButton}
         >
           <Image source={require('../icons/BackArrow.png')} style={styles.arrowIcon} />

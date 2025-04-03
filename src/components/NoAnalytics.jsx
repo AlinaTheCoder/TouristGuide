@@ -1,26 +1,31 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, Image, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 
+
 // Get screen height for responsive calculations
 const { height } = Dimensions.get('window');
 
+
 export default function NoAnalytics({ hostName = '' }) {
-    const [activeTab, setActiveTab] = useState('Checking Out');
+    // Changed default active tab to 'Currently Hosting' since it's now the first tab
+    const [activeTab, setActiveTab] = useState('Currently Hosting');
+
 
     const getReservationText = () => {
         switch (activeTab) {
-            case 'Checking Out':
-                return "You don’t have any guests checking out today or tomorrow.";
             case 'Currently Hosting':
                 return "You don't have any guests staying with you right now.";
             case 'Arriving Soon':
                 return "You don't have any guests arriving today or tomorrow.";
             case 'Upcoming':
                 return "You currently don't have any upcoming guests.";
+            case 'Checking Out':
+                return "You don't have any guests checking out today or tomorrow.";
             default:
-                return "You don’t have any guests checking out today or tomorrow.";
+                return "You don't have any guests staying with you right now.";
         }
     };
+
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -28,19 +33,13 @@ export default function NoAnalytics({ hostName = '' }) {
             <Text style={styles.welcomeText}>Welcome, {hostName}!</Text>
             <View style={styles.block}>
 
+
             {/* Your Reservations Section */}
             <Text style={styles.reservationsText}>Your Reservations</Text>
 
-            {/* Horizontal Scrollable Tabs */}
+
+            {/* Horizontal Scrollable Tabs - Rearranged in the requested order */}
             <ScrollView horizontal style={styles.tabsContainer} showsHorizontalScrollIndicator={false}>
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === 'Checking Out' && styles.activeTab]}
-                    onPress={() => setActiveTab('Checking Out')}
-                >
-                    <Text style={activeTab === 'Checking Out' ? styles.tabTextActive : styles.tabText}>
-                        Checking Out (0)
-                    </Text>
-                </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.tab, activeTab === 'Currently Hosting' && styles.activeTab]}
                     onPress={() => setActiveTab('Currently Hosting')}
@@ -65,7 +64,16 @@ export default function NoAnalytics({ hostName = '' }) {
                         Upcoming (0)
                     </Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.tab, activeTab === 'Checking Out' && styles.activeTab]}
+                    onPress={() => setActiveTab('Checking Out')}
+                >
+                    <Text style={activeTab === 'Checking Out' ? styles.tabTextActive : styles.tabText}>
+                        Checking Out (0)
+                    </Text>
+                </TouchableOpacity>
             </ScrollView>
+
 
             {/* Multiple Containers if you want to add then change the number in array */}
             {[...Array(1)].map((_, index) => (
@@ -75,14 +83,16 @@ export default function NoAnalytics({ hostName = '' }) {
                 </View>
             ))}
 
+
             {/* All Reservations Link */}
-            <TouchableOpacity>
+            <View>
                 <Text style={styles.allReservationsLink}>All Reservations (0)</Text>
-            </TouchableOpacity>
+            </View>
             </View>
         </ScrollView>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {
@@ -104,7 +114,8 @@ const styles = StyleSheet.create({
         letterSpacing: 0.6,
     },
     block:{
-        marginHorizontal: 22, 
+        marginHorizontal: 22,
+
 
     },
     reservationsText: {

@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
-  Alert,           
+  Alert,
 } from 'react-native';
 import TopSection from '../components/TopSection2';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -24,7 +24,7 @@ const itemWidth = (width - (numColumns + 1) * itemMargin * 2) / numColumns;
 // Utility function to properly capitalize city names
 const formatCityName = (cityName) => {
   if (!cityName) return '';
-  
+
   // Handle cities with multiple words (e.g., "dera ghazi khan" -> "Dera Ghazi Khan")
   return cityName
     .split(' ')
@@ -64,7 +64,7 @@ const AfterSearch = () => {
           guestDetails,
           city,
         });
-        
+
         const response = await apiInstance.post('/search', {
           searchQuery,
           selectedRegion,
@@ -94,9 +94,9 @@ const AfterSearch = () => {
           Alert.alert(
             'Error',
             error.response.data?.error ||
-              error.response.data?.message ||
-              error.message ||
-              'Something went wrong while searching. Please try again.'
+            error.response.data?.message ||
+            error.message ||
+            'Something went wrong while searching. Please try again.'
           );
         }
       } finally {
@@ -123,7 +123,19 @@ const AfterSearch = () => {
     return (
       <TouchableOpacity
         style={[styles.itemContainer, { width: itemWidth }]}
-        onPress={() => navigation.navigate('ActivityDetails', { activityId: item.activityId })}
+        // onPress={() => navigation.navigate('ActivityDetails', { activityId: item.activityId })}
+        onPress={() => navigation.navigate('ActivityDetails', {
+          activityId: item.activityId,
+          from: 'AfterSearch',
+          searchParams: {
+            searchQuery,
+            selectedRegion,
+            selectedDateRange,
+            rawDateRange,
+            guestDetails,
+            city
+          }
+        })}
       >
         <Image source={activityImage} style={styles.itemImage} />
         <TouchableOpacity
@@ -158,7 +170,8 @@ const AfterSearch = () => {
             ? `${guestDetails.value} ${guestDetails.category}`
             : 'No Guests Specified'
         }
-        onIconPress={() => navigation.navigate('UserTabs', { screen: 'Explore' })}
+        // In AfterSearch.jsx, update this line:
+        onIconPress={() => navigation.navigate('SearchScreen')}
         onOtherPress={() => navigation.navigate('SearchScreen')}
       />
 
@@ -190,10 +203,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   noResultsContainer: {
-    marginTop: 40,
+    marginTop: 240,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   noResultsText: {
     fontSize: 18,
     color: '#555',

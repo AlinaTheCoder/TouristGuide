@@ -10,10 +10,17 @@ export default function ScheduleAvailability({ activity, onEdit }) {
     endDate,
     startTime,
     endTime,
-  } = activity; // Notice we're using the mapped item structure now
+    listingStatus, // Use the passed listingStatus
+  } = activity;
+
+  // Determine the shadow color based on listingStatus
+  const containerStyle = [
+    styles.container,
+    listingStatus === 'Unlist' && styles.unlistedContainer,
+  ];
 
   return (
-    <View style={styles.container}>
+    <View style={containerStyle}>
       <View style={styles.leftSection}>
         <Image source={image} style={styles.activityImage} />
       </View>
@@ -59,6 +66,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     padding: 10,
+  },
+  // Add special style for unlisted activities
+  unlistedContainer: {
+    shadowColor: '#FF0000', // Pure red shadow
+    shadowOpacity: 0.9,     // Higher opacity for more visibility
+    shadowRadius: 9,        // Larger radius for more prominent shadow
   },
   leftSection: {
     alignItems: 'center',

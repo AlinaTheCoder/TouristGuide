@@ -6,15 +6,23 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,          // <-- We'll use Alert for error handling
+  Alert,
+  Dimensions,
+  Image,
+
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+
 import PostViewBookings from '../components/PostViewBookings';
 import NoAnalytics from '../components/NoAnalytics';
 import apiInstance from '../config/apiConfig';
+
+
+// Get screen height for responsive calculations (same as in NoAnalytics)
+const { height } = Dimensions.get('window');
+
 
 // ----------------------------------------------------------------
 // Helpers for date/time/category
@@ -26,35 +34,44 @@ const formatDate = (dateKey) => {
   const [year, month, day] = parts.map((p) => parseInt(p, 10));
   if (!year || !month || !day) return dateKey;
 
+
   const dateObj = new Date(year, month - 1, day);
   if (isNaN(dateObj.getTime())) return dateKey;
+
 
   const options = { month: 'short', day: 'numeric', year: 'numeric' };
   return dateObj.toLocaleDateString(undefined, options);
 };
+
 
 const formatTime = (slotString) => {
   if (!slotString) return '';
   return slotString.replace(/_/g, ' ');
 };
 
+
 const categorizeBooking = (booking) => {
   if (!booking.bookingDate) return 'Upcoming';
 
+
   const parts = booking.bookingDate.split('-');
   if (parts.length !== 3) return 'Upcoming';
+
 
   const [year, month, day] = parts.map((p) => parseInt(p, 10));
   const dateObj = new Date(year, month - 1, day);
   if (isNaN(dateObj.getTime())) return 'Upcoming';
 
+
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
+
   const dateOnly = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
   const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const tomorrowOnly = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+
 
   if (dateOnly.getTime() === todayOnly.getTime()) {
     return 'Currently hosting';
@@ -68,11 +85,14 @@ const categorizeBooking = (booking) => {
 };
 // ----------------------------------------------------------------
 
+
 export default function Analytics1() {
-  const [activeTab, setActiveTab] = useState('Checking out');
+  // Changed default active tab to 'Currently hosting'
+  const [activeTab, setActiveTab] = useState('Currently hosting');
   const [hostName, setHostName] = useState('');
   const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(false);
+
 
   // useFocusEffect -> retrieve hostId from AsyncStorage, fetch analytics
   useFocusEffect(
@@ -80,6 +100,7 @@ export default function Analytics1() {
       const fetchBookings = async () => {
         try {
           setLoading(true);
+
 
           // 1) Get the current host's ID from AsyncStorage
           const hostId = await AsyncStorage.getItem('uid');
@@ -89,6 +110,7 @@ export default function Analytics1() {
             setAllBookings([]);
             return;
           }
+
 
           // 2) Make the request to /analytics/host/:hostId
           const response = await apiInstance.get(`/analytics/host/${hostId}`);
@@ -100,6 +122,7 @@ export default function Analytics1() {
         } catch (error) {
           console.log('[Analytics1] Error fetching analytics data:', error);
 
+
           // --- Network vs. Server Error Handling ---
           if (!error.response) {
             Alert.alert(
@@ -110,9 +133,9 @@ export default function Analytics1() {
             Alert.alert(
               'Error',
               error.response.data?.error ||
-                error.response.data?.message ||
-                error.message ||
-                'Failed to fetch analytics data. Please try again.'
+              error.response.data?.message ||
+              error.message ||
+              'Failed to fetch analytics data. Please try again.'
             );
           }
           setAllBookings([]);
@@ -121,35 +144,31 @@ export default function Analytics1() {
         }
       };
 
+
       fetchBookings();
     }, [])
   );
 
+
   // Count total
   const totalBookings = allBookings.length;
 
-  // Show loader in center of screen
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF5A5F" />
-        <Text style={styles.loadingText}>Loading Analytics...</Text>
-      </View>
-    );
-  }
 
   // If no bookings => NoAnalytics
   if (!loading && totalBookings === 0) {
     return <NoAnalytics hostName={hostName} />;
   }
 
+
   // Filter by activeTab
   const filteredBookings = allBookings.filter(
     (booking) => categorizeBooking(booking).toLowerCase() === activeTab.toLowerCase()
   );
 
+
   // Count how many in each category
-  const categories = ['Checking out', 'Currently hosting', 'Arriving soon', 'Upcoming'];
+  // Reordered categories array as requested
+  const categories = ['Currently hosting', 'Arriving soon', 'Upcoming', 'Checking out'];
   const countsByCategory = {};
   categories.forEach((cat) => {
     countsByCategory[cat] = allBookings.filter(
@@ -157,21 +176,23 @@ export default function Analytics1() {
     ).length;
   });
 
-  // Custom message for "no bookings" in the selected tab
+
+  // Custom message for "no bookings" in the selected tab - similar to NoAnalytics
   const getNoBookingsMessage = () => {
     switch (activeTab) {
       case 'Currently hosting':
-        return 'No bookings found for Today!';
+        return "You don't have any guests staying with you right now.";
       case 'Arriving soon':
-        return 'No bookings found for Tomorrow!';
+        return "You don't have any guests arriving today or tomorrow.";
       case 'Upcoming':
-        return 'No bookings found for future!';
+        return "You currently don't have any upcoming guests.";
       case 'Checking out':
-        return 'No bookings found in the past!';
+        return "You don't have any guests checking out today or tomorrow.";
       default:
-        return `No bookings found for "${activeTab}".`;
+        return "You don't have any guests for this time period.";
     }
   };
+
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -180,6 +201,7 @@ export default function Analytics1() {
       <View style={styles.block}>
         {/* Your Reservations Section */}
         <Text style={styles.reservationsText}>Your Reservations</Text>
+
 
         {/* Tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsContainer}>
@@ -197,10 +219,14 @@ export default function Analytics1() {
         </ScrollView>
       </View>
 
-      {/* If no bookings in this tab => show message */}
+
+      {/* If no bookings in this tab => show NoAnalytics style message with image */}
       {filteredBookings.length === 0 ? (
-        <View style={[styles.container, styles.centerContent]}>
-          <Text style={styles.noBookingsText}>{getNoBookingsMessage()}</Text>
+        <View style={styles.block}>
+          <View style={[styles.noReservationContainer, { marginBottom: 90, marginTop: 23 }]}>
+            <Image source={require('../icons/forbidden.png')} style={styles.image} />
+            <Text style={styles.noReservationText}>{getNoBookingsMessage()}</Text>
+          </View>
         </View>
       ) : (
         <View style={styles.container}>
@@ -208,6 +234,7 @@ export default function Analytics1() {
             // Format date/time
             const bookingDateFormatted = formatDate(booking.bookingDate);
             const timeSlotFormatted = formatTime(booking.timeSlot);
+
 
             return (
               <PostViewBookings
@@ -227,11 +254,13 @@ export default function Analytics1() {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
     paddingBottom: 60,
+    marginBottom: 8
   },
   scrollContent: {
     paddingBottom: 20,
@@ -293,6 +322,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  // Added NoAnalytics style container and text styles
+  noReservationContainer: {
+    backgroundColor: '#f2f2f2',
+    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 80,
+    minHeight: height * 0.4, // Responsive fixed height equivalent to 40%
+  },
+  image: {
+    width: 25,
+    height: 25,
+    marginBottom: 10,
+  },
+  noReservationText: {
+    color: '#888888',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginHorizontal: 40,
+    lineHeight: 16
+  },
+  // Original styles
   noBookingsText: {
     marginVertical: 20,
     fontSize: 16,
@@ -300,15 +355,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     textAlign: 'center',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#FF5A5F',
-  },
 });
+
+

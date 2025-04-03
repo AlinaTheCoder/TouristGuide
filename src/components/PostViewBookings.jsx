@@ -9,7 +9,9 @@ import {
   Image
 } from 'react-native';
 
+
 const { width: screenWidth } = Dimensions.get('window');
+
 
 const PostViewBookings = ({
   PostImages,
@@ -21,11 +23,13 @@ const PostViewBookings = ({
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+
   const handleScroll = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const currentIndex = Math.round(offsetX / (screenWidth - 80));
     setActiveImageIndex(currentIndex);
   };
+
 
   return (
     <View style={styles.container}>
@@ -43,6 +47,7 @@ const PostViewBookings = ({
           ))}
         </ScrollView>
 
+
         {/* Dots for image slider */}
         <View style={styles.dotContainer}>
           {PostImages.map((_, idx) => (
@@ -56,16 +61,17 @@ const PostViewBookings = ({
           ))}
         </View>
 
+
         {/* Caption, Guest, Date, Time, and BookedBy */}
         <View style={styles.captionContainer}>
           <View style={styles.captionRow}>
             <Text style={styles.caption}>{PostCaption}</Text>
+            <Text style={styles.bookedBy}>{PostBookedBy}</Text>
+          </View>
+          <View style={styles.dateBookedRow}>
             <Text style={styles.dateTime}>
               {PostDate} | {PostTime}
             </Text>
-          </View>
-          <View style={styles.dateBookedRow}>
-            <Text style={styles.bookedBy}>{PostBookedBy}</Text>
             <Text style={styles.guest}>{PostGuests} Guest</Text>
           </View>
         </View>
@@ -73,6 +79,7 @@ const PostViewBookings = ({
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -88,7 +95,7 @@ const styles = StyleSheet.create({
     marginTop: 25,
   },
   image: {
-    width: screenWidth - 44, 
+    width: screenWidth - 44,
     height: 280,
     borderRadius: 10,
   },
@@ -150,5 +157,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
 });
+
 
 export default PostViewBookings;

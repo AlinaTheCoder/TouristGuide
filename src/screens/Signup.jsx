@@ -11,13 +11,16 @@ import {
 } from 'react-native';
 import InputField from '../components/InputField';
 import CustomButton from '../components/CustomButton';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useToast } from '../../App'
 import apiInstance from '../config/apiConfig';
 import { useNavigation } from '@react-navigation/native';
 import PasswordField from '../components/PasswordField';
 
 
 const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/;
+// Add regex for name validation (letters, spaces, and common name characters)
+const nameRegex = /^[A-Za-z\s.'"-]+$/;
+const MAX_NAME_LENGTH = 70; // Setting a reasonable maximum length for full name
 
 
 const Signup = () => {
@@ -27,12 +30,25 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-
+  const toast = useToast();
 
   // Validate form fields
   const validateFields = () => {
     const newErrors = {};
-    if (!fullName) newErrors.fullName = 'Full Name is required.';
+    
+    // Enhanced name validation
+    if (!fullName) {
+      newErrors.fullName = 'Full Name is required.';
+    } else if (fullName.trim().length < 3) {
+      newErrors.fullName = 'Name must be at least 3 characters.';
+    } else if (fullName.length > MAX_NAME_LENGTH) {
+      newErrors.fullName = `Name cannot exceed ${MAX_NAME_LENGTH} characters.`;
+    } else if (!nameRegex.test(fullName)) {
+      newErrors.fullName = 'Name should contain only letters and spaces.';
+    } else if (fullName.trim().split(/\s+/).length < 2) {
+      newErrors.fullName = 'Please enter your full name (first & last name).';
+    }
+    
     if (!email) {
       newErrors.email = 'Email is required.';
     } else if (!emailRegex.test(email)) {
@@ -84,7 +100,8 @@ const handleSignup = async () => {
     // Continue with original OTP flow for non-Google accounts
     const response = await apiInstance.post('/email/sendOTP', { email });
     if (response.data?.message) {
-      Alert.alert('OTP Sent', 'Please check your email for the OTP code.');
+      // Alert.alert('OTP Sent', 'Please check your email for the OTP code.');
+      toast.showSuccess('OTP Sent', 'Please check your email for the OTP code!');
       // Navigate to OTPVerification screen, passing the entered details
       navigation.navigate('OTPVerification', { fullName, email, password });
     } else {
@@ -106,10 +123,10 @@ const handleSignup = async () => {
         placeholder="Full Name"
         value={fullName}
         onChangeText={(text) => {
-          const trimmedText = text.trim();
-          setFullName(trimmedText);
+          setFullName(text); // Allowing spaces in name
           if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: '' }));
         }}
+        maxLength={MAX_NAME_LENGTH + 5} // Adding buffer for input before validation shows error
       />
       {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
       <InputField
@@ -214,5 +231,3 @@ const styles = StyleSheet.create({
 
 
 export default Signup;
-
-

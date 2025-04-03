@@ -1,7 +1,7 @@
 // src/config/apiConfig.js
 import axios from 'axios';
 
-const API_BASE_URL = 'http://10.10.64.182:3000'; // Replace with your Express.js backend address
+const API_BASE_URL = 'http://192.168.10.102:3000'; // Replace with your Express.js backend address
 
 const apiInstance = axios.create({
   baseURL: API_BASE_URL,

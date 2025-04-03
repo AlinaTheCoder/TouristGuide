@@ -91,7 +91,7 @@ const HostTabs = () => {
         }}
       />
       <Tab.Screen
-        name="Profile"
+        name="HostProfile"
         component={HostProfile}
         options={{
           tabBarIcon: ({ focused }) => (

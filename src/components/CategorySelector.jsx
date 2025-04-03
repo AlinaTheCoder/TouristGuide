@@ -33,7 +33,7 @@ const CategorySelector = ({ selectedCategory, onSelectCategory, categories }) =>
         >
           <Picker.Item
             value=""
-            label="Select Destination"
+            label="Select Time Slot"
             color="#aaa"
           />
           {categories.map((category, index) => (

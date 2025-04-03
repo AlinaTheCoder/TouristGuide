@@ -5,8 +5,7 @@ import {
   Text,
   View,
   FlatList,
-  ActivityIndicator,
-  Alert, // <-- We'll use Alert here for error messages
+  Alert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -38,7 +37,7 @@ export default function Trips() {
 
       // Fetch from /trips/user/:userId
       // In fetchUserTrips function
-const response = await apiInstance.get(`/trips/user/${userId}?nocache=${Date.now()}`);
+      const response = await apiInstance.get(`/trips/user/${userId}?nocache=${Date.now()}`);
       const data = response.data;
       setActivities(data.trips || []);
     } catch (err) {
@@ -79,18 +78,8 @@ const response = await apiInstance.get(`/trips/user/${userId}?nocache=${Date.now
     />
   );
 
-  // Loader
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF5A5F" />
-        <Text style={styles.loadingText}>Loading Trips...</Text>
-      </View>
-    );
-  }
-
-  // No trips
-  if (activities.length === 0) {
+  // No trips (only show after loading is complete)
+  if (!isLoading && activities.length === 0) {
     return <NoTrips />;
   }
 
@@ -128,16 +117,5 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 100,
     paddingHorizontal: 12,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#FF5A5F',
-  },
+  }
 });

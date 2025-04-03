@@ -266,7 +266,7 @@ const HostActivityDetails = () => {
             Account Holder Name: {activityData.accountHolderName}
           </Text>
           <Text style={styles.InfoSubtitle}>
-            Credit Card No: {activityData.creditCardNumber}
+            IBAN No: {activityData.ibanNumber}
           </Text>
         </View>
       </ScrollView>
@@ -280,6 +280,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
+    paddingBottom: 20
   },
   scrollContainer: {
     flex: 1,

@@ -16,7 +16,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 import apiInstance from '../config/apiConfig';
 import { launchImageLibrary } from 'react-native-image-picker';
-
+import { useToast } from '../../App'
 
 const UserProfile = () => {
   const navigation = useNavigation();
@@ -25,6 +25,7 @@ const UserProfile = () => {
   const [loginWithGoogle, setLoginWithGoogle] = useState('');
   const [profileImage, setProfileImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const toast = useToast();
   // UseFocusEffect to re-run fetch logic whenever this screen is focused
   useFocusEffect(
     React.useCallback(() => {
@@ -133,7 +134,8 @@ const UserProfile = () => {
 
       if (response.data.imageUrl) {
         setProfileImage(response.data.imageUrl);
-        Alert.alert('Success', 'Profile image updated successfully!');
+        // Alert.alert('Success', 'Profile image updated successfully!');
+        toast.showSuccess('Profile image updated successfully!');
       }
     } catch (error) {
       setIsUploading(false);
@@ -165,25 +167,12 @@ const UserProfile = () => {
           await GoogleSignin.signOut();
           await auth().signOut();
 
-
-
-
-
-
-
-
-          Alert.alert('Success', 'You have been logged out with Google');
+          // Alert.alert('Success', 'You have been logged out with Google');
+          toast.showSuccess('You have been logged out with Google!');
           await AsyncStorage.removeItem('isGoogleUser');
           navigation.navigate('Login');
         } catch (error) {
           console.error('Logout Error:', error.message);
-
-
-
-
-
-
-
 
           if (!error.response) {
             Alert.alert(
@@ -204,18 +193,12 @@ const UserProfile = () => {
       } else {
         // Regular user
         await AsyncStorage.removeItem('uid');
-        Alert.alert('Success', 'You have been logged out!');
+        // Alert.alert('Success', 'You have been logged out!');
+        toast.showSuccess('You have been logged out!');
         navigation.replace('Login');
       }
     } catch (error) {
       console.error('Logout Error:', error.message);
-
-
-
-
-
-
-
 
       if (!error.response) {
         Alert.alert(
