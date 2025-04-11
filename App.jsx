@@ -8,6 +8,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import NetInfo from '@react-native-community/netinfo';
 import OfflineFallback from './src/components/OfflineFallback ';
+import apiInstance from './src/config/apiConfig';
 
 // Import your app icon
 import appIcon from './src/icons/app_icon.png'; // Make sure this path is correct
@@ -40,6 +41,7 @@ import AuthLoading from './src/screens/AuthLoading';
 import { WishlistProvider } from './src/contexts/WishlistContext';
 import FeedbackScreen from './src/screens/FeedbackScreen';
 import BookingConfirmed from './src/screens/BookingConfirmed';
+import ChatScreen from './src/screens/ChatScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -61,22 +63,24 @@ const Toast = ({ message, type = 'default' }) => {
   );
 };
 
-// Toast styles - updated to support icon and match your requirements
+// Toast styles - updated to support dynamic width based on content
 const toastStyles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 40, 
-    left: '25%',
-    right: '25%',
+    bottom: 70, 
+    alignSelf: 'center',
     backgroundColor: '#FFFFFF', 
-    padding: 10,
-    borderRadius: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 999,
-    borderWidth: 1, // Added border width
-    borderColor: '#000000', // Added black border
+    borderWidth: 1,
+    borderColor: '#000000',
+    minWidth: '50%',
+    maxWidth: '85%',
   },
   icon: {
     width: 24,
@@ -86,6 +90,7 @@ const toastStyles = StyleSheet.create({
   text: {
     color: '#000000',
     fontSize: 14,
+    flexShrink: 1,
   },
 });
 
@@ -141,7 +146,75 @@ export default function App() {
   const [isOffline, setIsOffline] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const navigationRef = useRef(null);
+  const { showSuccess } = useToast();
  
+
+// this useEffect is for testing the backend connection
+  // This effect will run once when the component mounts
+  // and will check the backend connection
+useEffect(() => {
+  // Reference to keep track if the component is mounted
+  let isMounted = true;
+  let connectionCheckInterval = null;
+
+
+  // Function to test backend connection
+  const testBackendConnection = async () => {
+    try {
+      const response = await apiInstance.get('/health');
+      
+      if (isMounted) {
+        console.log('Backend connection successful:', response.data);
+        
+        // Show success message on first successful connection
+        if (!window.backendConnected) {
+          window.backendConnected = true;
+          showSuccess('Connected to server successfully');
+        }
+      }
+    } catch (error) {
+      if (isMounted) {
+        console.error('Backend connection failed:', error);
+        window.backendConnected = false;
+        
+        // Detailed error logging
+        if (error.response) {
+          // Server responded with error status code
+          console.error('Server error:', error.response.status, error.response.data);
+        } else if (error.request) {
+          // No response received
+          console.error('Network error - no response received');
+        } else {
+          // Error setting up request
+          console.error('Request setup error:', error.message);
+        }
+        
+        // You could show an error toast here if you want to notify the user
+        // setToastMessage('Unable to connect to server. Please try again later.');
+      }
+    }
+  };
+
+  // Run test immediately on component mount
+  testBackendConnection();
+
+  // Optional: Setup periodic connection check (every 30 seconds)
+  // Uncomment this if you want periodic checks
+  /*
+  connectionCheckInterval = setInterval(() => {
+    testBackendConnection();
+  }, 30000); // 30 seconds
+  */
+
+  // Cleanup function for when component unmounts
+  return () => {
+    isMounted = false;
+    if (connectionCheckInterval) {
+      clearInterval(connectionCheckInterval);
+    }
+  };
+}, []); // Empty dependency array means this runs once on mount
+
   // Monitor network connectivity
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -287,6 +360,7 @@ export default function App() {
                     component={HostPersonalInfo}
                   />
                   <Stack.Screen name="SearchScreen" component={SearchScreen} />
+                  <Stack.Screen name="ChatScreen" component={ChatScreen} />
                   <Stack.Screen
                     name="FinishHostFormScreen"
                     component={FinishHostFormScreen}

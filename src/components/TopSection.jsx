@@ -2,7 +2,6 @@
 import React from 'react';
 import {
   View,
-  TextInput,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,7 +9,7 @@ import {
   Image,
 } from 'react-native';
 
-const TopSection = ({ onIconPress, onOtherPress, selectedCategory, onCategorySelect }) => {
+const TopSection = ({ onIconPress, onOtherPress, selectedCategory, onCategorySelect, onChatPress }) => {
   // We no longer need local state for the selected icon;
   // the parent (Explore) manages selectedCategory.
 
@@ -28,7 +27,7 @@ const TopSection = ({ onIconPress, onOtherPress, selectedCategory, onCategorySel
 
   return (
     <View style={styles.container}>
-      {/* Touchable search bar section */}
+      {/* Touchable search bar section with chat bubble */}
       <View style={styles.searchWrapper}>
         <TouchableOpacity style={styles.searchContainer} onPress={onOtherPress}>
           <TouchableOpacity onPress={onIconPress}>
@@ -38,6 +37,11 @@ const TopSection = ({ onIconPress, onOtherPress, selectedCategory, onCategorySel
             <Text style={styles.whereToText}>Where to?</Text>
             <Text style={styles.filterText}>Anywhere · Any week · Add guests</Text>
           </View>
+        </TouchableOpacity>
+        
+        {/* Chat Assistant Bubble */}
+        <TouchableOpacity style={styles.chatBubble} onPress={onChatPress}>
+          <Image source={require('../icons/assistant.png')} style={styles.chatIcon} />
         </TouchableOpacity>
       </View>
 
@@ -93,7 +97,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 15,
     width: 388,
-    marginLeft: 8,
+    marginLeft: 4,
+    marginRight: 10
   },
   searchContainer: {
     flexDirection: 'row',
@@ -129,6 +134,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#555',
     marginTop: 3
+  },
+  // Chat bubble styles
+  chatBubble: {
+    backgroundColor: '#fff',
+    borderRadius: 50,
+    width: 70,
+    height: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,  // Elevation for Android shadow
+    shadowColor: '#000',  // Shadow properties for iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  chatIcon: {
+    width: 36,
+    height: 36,
   },
   iconContainer: {
     marginTop: 9,

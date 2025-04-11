@@ -101,7 +101,7 @@ const handleSignup = async () => {
     const response = await apiInstance.post('/email/sendOTP', { email });
     if (response.data?.message) {
       // Alert.alert('OTP Sent', 'Please check your email for the OTP code.');
-      toast.showSuccess('OTP Sent', 'Please check your email for the OTP code!');
+      toast.showSuccess('OTP Sent', 'Check your Email!');
       // Navigate to OTPVerification screen, passing the entered details
       navigation.navigate('OTPVerification', { fullName, email, password });
     } else {

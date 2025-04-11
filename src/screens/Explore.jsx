@@ -1,4 +1,4 @@
-// Explore.jsx
+// Explore.jsx - Updated with chat functionality
 import React, { useEffect, useState, useContext, useCallback } from 'react';
 import { ScrollView, View, Alert, StyleSheet, Text } from 'react-native';
 import TopSection from '../components/TopSection';
@@ -154,6 +154,11 @@ const Explore = () => {
     setSelectedCategory((prev) => (prev === category ? '' : category));
   };
 
+  // Handle chat icon press
+  const handleChatPress = () => {
+    navigation.navigate('ChatScreen');
+  };
+
   // ------------------- Render -------------------
   return (
     <ScrollView style={styles.container} showsHorizontalScrollIndicator={false}>
@@ -162,6 +167,7 @@ const Explore = () => {
         onOtherPress={() => navigation.navigate(SearchScreen)}
         selectedCategory={selectedCategory}
         onCategorySelect={handleCategorySelect}
+        onChatPress={handleChatPress} // Add this prop
       />
 
       {!loading && activities.length === 0 ? (
