@@ -47,14 +47,14 @@ const Stack = createNativeStackNavigator();
 
 // Create toast context
 const ToastContext = createContext({
-  showSuccess: () => {},
+  showSuccess: () => { },
 });
 
 // Enhanced Toast component with type support
 const Toast = ({ message, type = 'default' }) => {
   // Show icon only for success type
   const showIcon = type === 'success';
-  
+
   return (
     <View style={toastStyles.container}>
       {showIcon && <Image source={appIcon} style={toastStyles.icon} />}
@@ -67,9 +67,9 @@ const Toast = ({ message, type = 'default' }) => {
 const toastStyles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 70, 
+    bottom: 70,
     alignSelf: 'center',
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: '#FFFFFF',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -96,7 +96,7 @@ const toastStyles = StyleSheet.create({
 
 // Toast global reference for non-component access
 let toastGlobalRef = {
-  showSuccess: () => {},
+  showSuccess: () => { },
 };
 
 export const showSuccessToast = (message) => {
@@ -114,7 +114,7 @@ export const ToastProvider = ({ children }) => {
   // Method to show toast of any type
   const showToast = (message, type, duration = 3000) => {
     setToastConfig({ message, type, visible: true });
-    
+
     // Auto hide after duration
     setTimeout(() => {
       setToastConfig(prev => ({ ...prev, visible: false }));
@@ -147,73 +147,73 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const navigationRef = useRef(null);
   const { showSuccess } = useToast();
- 
 
-// this useEffect is for testing the backend connection
+
+  // this useEffect is for testing the backend connection
   // This effect will run once when the component mounts
   // and will check the backend connection
-useEffect(() => {
-  // Reference to keep track if the component is mounted
-  let isMounted = true;
-  let connectionCheckInterval = null;
+  useEffect(() => {
+    // Reference to keep track if the component is mounted
+    let isMounted = true;
+    let connectionCheckInterval = null;
 
 
-  // Function to test backend connection
-  const testBackendConnection = async () => {
-    try {
-      const response = await apiInstance.get('/health');
-      
-      if (isMounted) {
-        console.log('Backend connection successful:', response.data);
-        
-        // Show success message on first successful connection
-        if (!window.backendConnected) {
-          window.backendConnected = true;
-          showSuccess('Connected to server successfully');
+    // Function to test backend connection
+    const testBackendConnection = async () => {
+      try {
+        const response = await apiInstance.get('/health');
+
+        if (isMounted) {
+          console.log('Backend connection successful:', response.data);
+
+          // Show success message on first successful connection
+          if (!window.backendConnected) {
+            window.backendConnected = true;
+            showSuccess('Connected to server successfully');
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Backend connection failed:', error);
+          window.backendConnected = false;
+
+          // Detailed error logging
+          if (error.response) {
+            // Server responded with error status code
+            console.error('Server error:', error.response.status, error.response.data);
+          } else if (error.request) {
+            // No response received
+            console.error('Network error - no response received');
+          } else {
+            // Error setting up request
+            console.error('Request setup error:', error.message);
+          }
+
+          // You could show an error toast here if you want to notify the user
+          // showError('Unable to connect to server. Please try again later.');
         }
       }
-    } catch (error) {
-      if (isMounted) {
-        console.error('Backend connection failed:', error);
-        window.backendConnected = false;
-        
-        // Detailed error logging
-        if (error.response) {
-          // Server responded with error status code
-          console.error('Server error:', error.response.status, error.response.data);
-        } else if (error.request) {
-          // No response received
-          console.error('Network error - no response received');
-        } else {
-          // Error setting up request
-          console.error('Request setup error:', error.message);
-        }
-        
-        // You could show an error toast here if you want to notify the user
-        // setToastMessage('Unable to connect to server. Please try again later.');
-      }
-    }
-  };
+    };
 
-  // Run test immediately on component mount
-  testBackendConnection();
-
-  // Optional: Setup periodic connection check (every 30 seconds)
-  // Uncomment this if you want periodic checks
-  /*
-  connectionCheckInterval = setInterval(() => {
+    // Run test immediately on component mount
     testBackendConnection();
-  }, 30000); // 30 seconds
-  */
 
-  // Cleanup function for when component unmounts
-  return () => {
-    isMounted = false;
-    if (connectionCheckInterval) {
-      clearInterval(connectionCheckInterval);
-    }
-  };
-}, []); // Empty dependency array means this runs once on mount
+    // Optional: Setup periodic connection check (every 30 seconds)
+    // Uncomment this if you want periodic checks
+    /*
+    connectionCheckInterval = setInterval(() => {
+      testBackendConnection();
+    }, 30000); // 30 seconds
+    */
+
+    // Cleanup function for when component unmounts
+    return () => {
+      isMounted = false;
+      if (connectionCheckInterval) {
+        clearInterval(connectionCheckInterval);
+      }
+    };
+  }, []); // Empty dependency array means this runs once on mount
 
   // Monitor network connectivity
   useEffect(() => {
@@ -232,12 +232,8 @@ useEffect(() => {
         setIsOffline(false);
         setToastMessage('');
       } else {
-        // Show a minimalistic toast message if still offline
-        setToastMessage('No internet connection. Please check and try again.');
-        // Automatically clear the toast after 3 seconds
-        setTimeout(() => {
-          setToastMessage('');
-        }, 3000);
+        // Show a proper toast message with app icon if still offline
+        showSuccessToast('No internet connection, Retry!');
       }
     });
   };
@@ -281,7 +277,7 @@ useEffect(() => {
       ErrorUtils.setGlobalHandler(globalErrorHandler);
     }
   }, []);
- 
+
   return (
     <ToastProvider>
       <StripeProvider
@@ -377,8 +373,6 @@ useEffect(() => {
                 </Stack.Navigator>
               </NavigationContainer>
             )}
-            {/* Render original toast message overlay if needed */}
-            {toastMessage !== '' && <Toast message={toastMessage} />}
           </ErrorBoundary>
         </WishlistProvider>
       </StripeProvider>

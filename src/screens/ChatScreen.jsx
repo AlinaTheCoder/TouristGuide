@@ -68,10 +68,9 @@ const ChatScreen = () => {
         const minutes = now.getMinutes().toString().padStart(2, '0');
         return `${hours}:${minutes}`;
     };
-
     // Create initial message with current timestamp
     const createInitialMessage = () => ({
-        text: 'Hello! I\'m your TouristGuide assistant for Pakistan. How can I help you explore Pakistan today?',
+        text: 'Hello! I\'m your TouristGuide assistant. How can I help you explore Pakistan today?',
         isUser: false,
         id: '1',
         timestamp: getCurrentTime()

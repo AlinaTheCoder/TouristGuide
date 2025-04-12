@@ -11,17 +11,12 @@ import {
 } from 'react-native';
 import InputField from '../components/InputField';
 import CustomButton from '../components/CustomButton';
-import { useToast } from '../../App'
+import PasswordField from '../components/PasswordField';
 import apiInstance from '../config/apiConfig';
 import { useNavigation } from '@react-navigation/native';
-import PasswordField from '../components/PasswordField';
-
+import { useToast } from '../../App'
 
 const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/;
-// Add regex for name validation (letters, spaces, and common name characters)
-const nameRegex = /^[A-Za-z\s.'"-]+$/;
-const MAX_NAME_LENGTH = 70; // Setting a reasonable maximum length for full name
-
 
 const Signup = () => {
   const navigation = useNavigation();
@@ -31,24 +26,10 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const toast = useToast();
-
   // Validate form fields
   const validateFields = () => {
     const newErrors = {};
-    
-    // Enhanced name validation
-    if (!fullName) {
-      newErrors.fullName = 'Full Name is required.';
-    } else if (fullName.trim().length < 3) {
-      newErrors.fullName = 'Name must be at least 3 characters.';
-    } else if (fullName.length > MAX_NAME_LENGTH) {
-      newErrors.fullName = `Name cannot exceed ${MAX_NAME_LENGTH} characters.`;
-    } else if (!nameRegex.test(fullName)) {
-      newErrors.fullName = 'Name should contain only letters and spaces.';
-    } else if (fullName.trim().split(/\s+/).length < 2) {
-      newErrors.fullName = 'Please enter your full name (first & last name).';
-    }
-    
+    if (!fullName) newErrors.fullName = 'Full Name is required.';
     if (!email) {
       newErrors.email = 'Email is required.';
     } else if (!emailRegex.test(email)) {
@@ -63,59 +44,71 @@ const Signup = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-// Enhanced handleSignup function
-const handleSignup = async () => {
-  if (!validateFields()) return;
-  setLoading(true);
-  
-  try {
-    // First check if this email is associated with Google
-    const checkResponse = await apiInstance.post('/checkEmailProvider', { email: email.trim() });
-    
-    if (checkResponse.data?.isGoogleAccount) {
+  // Enhanced handleSignup function
+  const handleSignup = async () => {
+    if (!validateFields()) return;
+    setLoading(true);
+
+    try {
+      console.log("Attempting signup for email:", email.trim());
+
+      // First check if this email is associated with Google
+      try {
+        console.log("Checking if email is associated with Google...");
+        const checkResponse = await apiInstance.post('/checkEmailProvider', { email: email.trim() });
+        console.log("Check response:", JSON.stringify(checkResponse.data));
+
+        if (checkResponse.data?.isGoogleAccount) {
+          Alert.alert(
+            'Google Account Detected',
+            `This email "${email.trim()}" is associated with Google.`,
+            [
+              {
+                text: 'Cancel',
+                style: 'cancel',
+              },
+              {
+                text: 'Sign In with Google',
+                onPress: () => {
+                  // Navigate to Login with parameters to trigger Google sign-in
+                  navigation.navigate('Login', {
+                    triggerGoogleSignIn: true,
+                    email: email.trim(),
+                    timestamp: new Date().getTime()
+                  });
+                },
+              },
+            ]
+          );
+          setLoading(false);
+          return;
+        }
+      } catch (checkError) {
+        console.log("Error checking email provider:", checkError);
+        // Continue with signup attempt even if check fails
+      }
+
+      // Continue with original OTP flow for non-Google accounts
+      console.log("Proceeding with OTP verification");
+      const response = await apiInstance.post('/email/sendOTP', { email });
+      if (response.data?.message) {
+        // Alert.alert('OTP Sent', 'Please check your email for the OTP code.');
+        toast.showSuccess('OTP Sent, Check your Email');
+        // Navigate to OTPVerification screen, passing the entered details
+        navigation.navigate('OTPVerification', { fullName, email, password });
+      } else {
+        throw new Error('Failed to send OTP.');
+      }
+    } catch (error) {
       Alert.alert(
-        'Google Account Detected',
-        `This email "${email.trim()}" is associated with Google.`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Sign In with Google',
-            onPress: () => {
-              navigation.navigate('Login', { 
-                triggerGoogleSignIn: true, 
-                email: email.trim(),
-                timestamp: new Date().getTime()
-              });
-            },
-          },
-        ]
+        'Error',
+        error.response?.data?.error || error.message || 'Failed to send OTP. Please try again.'
       );
+    } finally {
       setLoading(false);
-      return;
     }
-    
-    // Continue with original OTP flow for non-Google accounts
-    const response = await apiInstance.post('/email/sendOTP', { email });
-    if (response.data?.message) {
-      // Alert.alert('OTP Sent', 'Please check your email for the OTP code.');
-      toast.showSuccess('OTP Sent', 'Check your Email!');
-      // Navigate to OTPVerification screen, passing the entered details
-      navigation.navigate('OTPVerification', { fullName, email, password });
-    } else {
-      throw new Error('Failed to send OTP.');
-    }
-  } catch (error) {
-    Alert.alert(
-      'Error',
-      error.response?.data?.error || error.message || 'Failed to send OTP. Please try again.'
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>SIGN UP</Text>
@@ -123,10 +116,10 @@ const handleSignup = async () => {
         placeholder="Full Name"
         value={fullName}
         onChangeText={(text) => {
-          setFullName(text); // Allowing spaces in name
+          // Allow spaces in the full name
+          setFullName(text);
           if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: '' }));
         }}
-        maxLength={MAX_NAME_LENGTH + 5} // Adding buffer for input before validation shows error
       />
       {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
       <InputField
@@ -171,7 +164,6 @@ const handleSignup = async () => {
     </ScrollView>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -228,6 +220,5 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 });
-
 
 export default Signup;
